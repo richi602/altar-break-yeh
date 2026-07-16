@@ -1,0 +1,35 @@
+[gd_scene format=3 uid="uid://x0skjdfp3miv"]
+
+[ext_resource type="Texture2D" uid="uid://b2pbqtjxhrgra" path="res://textures/grids/Purple/texture_11.png" id="1_whr1e"]
+[ext_resource type="PackedScene" uid="uid://bdq6ajic6fjrf" path="res://models/mixamo_base.glb" id="2_3lc0u"]
+[ext_resource type="Script" uid="uid://buw3vvs2ix3l5" path="res://movement scripts/mixamo_base.gd" id="3_7525o"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_poy5y"]
+albedo_texture = ExtResource("1_whr1e")
+uv1_triplanar = true
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_5dpxp"]
+height = 2.0039063
+
+[node name="Floor" type="Node3D" unique_id=860377737]
+
+[node name="CSGBox3D" type="CSGBox3D" parent="." unique_id=97186226]
+material_override = SubResource("StandardMaterial3D_poy5y")
+use_collision = true
+size = Vector3(1000, 1, 1000)
+
+[node name="player" type="Node3D" parent="." unique_id=1339016960]
+
+[node name="CharacterBody3D" type="CharacterBody3D" parent="player" unique_id=1789811437]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.8998675, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="player/CharacterBody3D" unique_id=31638098]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5930086, 0)
+shape = SubResource("CylinderShape3D_5dpxp")
+
+[node name="mixamo_base" parent="player" unique_id=1859267448 instance=ExtResource("2_3lc0u")]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, 0.6327823, 0)
+script = ExtResource("3_7525o")
+
+[node name="Camera3D" type="Camera3D" parent="player" unique_id=1508293720]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5287937, 1.9038815)

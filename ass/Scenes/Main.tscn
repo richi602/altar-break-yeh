@@ -1,0 +1,34 @@
+[gd_scene load_steps=7 format=3 uid="uid://8o788yc83prr"]
+
+[ext_resource type="PackedScene" uid="uid://ctwbrauoq44tg" path="res://Prefabs/Player.tscn" id="1_idj7w"]
+[ext_resource type="Script" uid="uid://b4ow7p0t60o4l" path="res://Scripts/Main.gd" id="1_pbw6q"]
+[ext_resource type="PackedScene" uid="uid://cmtxter53x7xb" path="res://Prefabs/Plane.tscn" id="1_r150o"]
+[ext_resource type="PackedScene" uid="uid://bcbh3a1bksjsf" path="res://Prefabs/Base.tscn" id="3_kln2b"]
+[ext_resource type="PackedScene" uid="uid://cntovvh8aavwr" path="res://Prefabs/AI.tscn" id="4_rgh2o"]
+
+[sub_resource type="NavigationMesh" id="NavigationMesh_rgh2o"]
+vertices = PackedVector3Array(-24.5, 0.5, -24.5, -24.5, 0.5, 24.5, 24.5, 0.5, 24.5, 24.5, 0.5, -24.5)
+polygons = [PackedInt32Array(3, 2, 0), PackedInt32Array(0, 2, 1)]
+
+[node name="Main" type="Node3D" node_paths=PackedStringArray("player", "ai")]
+script = ExtResource("1_pbw6q")
+player = NodePath("Player")
+ai = [NodePath("AI"), NodePath("AI2"), NodePath("AI3")]
+
+[node name="Base" parent="." instance=ExtResource("3_kln2b")]
+
+[node name="Player" parent="." instance=ExtResource("1_idj7w")]
+
+[node name="NavigationRegion3D" type="NavigationRegion3D" parent="."]
+navigation_mesh = SubResource("NavigationMesh_rgh2o")
+
+[node name="Plane" parent="NavigationRegion3D" instance=ExtResource("1_r150o")]
+
+[node name="AI" parent="." instance=ExtResource("4_rgh2o")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -20)
+
+[node name="AI2" parent="." instance=ExtResource("4_rgh2o")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0, 20)
+
+[node name="AI3" parent="." instance=ExtResource("4_rgh2o")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, 20)
