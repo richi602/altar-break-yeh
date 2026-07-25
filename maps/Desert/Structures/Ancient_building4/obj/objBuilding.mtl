@@ -1,0 +1,66 @@
+newmtl archRender_lambert305SG1
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd -s_0.769231_0.769231_brck49Lwhite.jpg
+bump  -bm 0.03 -s_0.769231_0.769231_brck49Lb.jpg
+Ni 1.00
+newmtl archRender_templeRender_blinn1SG1
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd -mm_0_0.867403_oldgold_copy.jpg
+bump  -bm 0.005 -mm_0_0.331492_oldgoldespecular.jpg
+Ni 1.00
+Ks 0.00 0.00 0.00
+map_Ks -mm_0_0.331492_oldgoldespecular.jpg
+newmtl c_blinn9SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd -s_1.111111_1.111111_teulablue1.jpg
+bump  -bm 1 -s_1.111111_1.111111_slat04XLb.jpg
+Ni 1.00
+newmtl lambert5SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd germany0WHITE.jpg
+bump  -bm 0.05 -mm_0_0.231034_germany010b.jpg
+Ni 1.00
+newmtl lambert18SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd wind15L.jpg
+bump  -bm 2 wind15Lb.jpg
+Ni 1.00
+newmtl lambert276SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd entr137M.jpg
+bump  -bm 2 entr137M.jpg
+Ni 1.00
+newmtl lambert277SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd -s_0.5_0.5_sweden008_sRGB_ACEScg.jpg.tx
+bump  -bm 1 -s_0.5_0.5_sweden008b.jpg
+Ni 1.00
+newmtl superdome_lambert5SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd wndw107M.jpg
+bump  -bm 2 -mm_0_0.368231_wndw107Mb.jpg
+Ni 1.00
