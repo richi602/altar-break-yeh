@@ -5,6 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://c0dy1cfoilwso" path="res://human basics animation/Models/HumanM_Model.fbx" id="3_3lc0u"]
 [ext_resource type="ArrayMesh" uid="uid://bucvpq4l3qgh6" path="res://maps/Desert/uploads_files_3835558_desert.obj" id="4_3lc0u"]
 [ext_resource type="PackedScene" uid="uid://xf8cuabl52aw" path="res://human basics animation/Animations/Male/Movement/Run/HumanM@Run01_Forward.fbx" id="4_7525o"]
+[ext_resource type="PackedScene" uid="uid://cxrshkgcvhxk1" path="res://models/richis sketch/edge_lord#0000/animations/final_rig/a7d429d3-3af4-498d-ac74-ceb151ed840d_1aacac91d271d968884d6ff09e86f884.fbx" id="5_hgjnp"]
 [ext_resource type="ArrayMesh" uid="uid://bhx18putddmt" path="res://maps/Desert/Structures/Free_temple_egypt/obj/objTemple.obj" id="7_wc2lb"]
 [ext_resource type="Texture2D" uid="uid://beagerowm1wva" path="res://maps/Desert/Structures/Free_temple_egypt/textures/egypt_011.jpg" id="8_hl37q"]
 [ext_resource type="ArrayMesh" uid="uid://3hpieoj4onve" path="res://maps/Desert/Structures/bridges/fREE_bridge/obj/objBridge.obj" id="9_qn20g"]
@@ -86,6 +87,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.3950882, 0.37860107)
 root_node = NodePath("../..")
 
 [node name="HumanM_Run01_Forward" parent="CSGBox3D/Player/HumanM_Model/AnimationPlayer" unique_id=559617373 instance=ExtResource("4_7525o")]
+
+[node name="a7d429d3-3af4-498d-ac74-ceb151ed840d_1aacac91d271d968884d6ff09e86f884" parent="CSGBox3D/Player/HumanM_Model" unique_id=2137194332 instance=ExtResource("5_hgjnp")]
+transform = Transform3D(0.1, 0, 0, 0, 0.1, 0, 0, 0, 0.1, 3.9829102, 2.450882, 0.35839844)
 
 [node name="UploadsFiles3835558Desert" type="MeshInstance3D" parent="." unique_id=774847040]
 transform = Transform3D(10, 0, 0, 0, 10, 0, 0, 0, 10, -3.0597258, 0.47692633, -5.502039)
