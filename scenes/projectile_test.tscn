@@ -1,0 +1,26 @@
+[gd_scene format=3 uid="uid://d1q5lbngvf41o"]
+
+[ext_resource type="PackedScene" uid="uid://0k4aie55clrd" path="res://scenes/projectile.tscn" id="1_kcrnb"]
+[ext_resource type="PackedScene" uid="uid://bk0gswpvkjyjx" path="res://scenes/player.tscn" id="2_8ql2v"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_midqa"]
+size = Vector3(21.19629, 3.0431519, 17.401245)
+
+[node name="Projectile Test" type="Node3D" unique_id=2135021172]
+
+[node name="Floor" type="Node3D" parent="." unique_id=1256504861]
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Floor" unique_id=1320262825]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor/StaticBody3D" unique_id=286110420]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.4068907, -3.2056274)
+shape = SubResource("BoxShape3D_midqa")
+
+[node name="Projectile" parent="." unique_id=2050982317 instance=ExtResource("1_kcrnb")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.044373512, 3.1822567, 12.7252035)
+
+[node name="Player" parent="." unique_id=937733449 instance=ExtResource("2_8ql2v")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.04519224, 0.6310463, -4.2928634)
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1175173480]
+transform = Transform3D(1, 0, 0, 0, 0.25881907, 0.9659258, 0, -0.9659258, 0.25881907, 7, 9, 0)
