@@ -227,15 +227,8 @@ func start_dodge(direction):
 
 
 
-func _on_hurtbox_body_entered(body):
-
-	if not can_take_damage:
-		return
 
 
-	if body.is_in_group("EnemyAttack"):
-
-		take_damage(10)
 
 
 
