@@ -2,7 +2,7 @@
 
 [ext_resource type="Texture2D" uid="uid://7jf4ie70feyd" path="res://maps/Desert/red_sand_diff_4k.jpg" id="1_whr1e"]
 [ext_resource type="Script" uid="uid://dkhimx4yxkxo2" path="res://scenes/player.gd" id="2_whr1e"]
-[ext_resource type="Animation" uid="uid://bvspj7p7vw12b" path="res://models/richis sketch/edge_lord#0000/animations/run/rig_run.res" id="3_qn20g"]
+[ext_resource type="Animation" uid="uid://vesiuv4cne8x" path="res://models/richis sketch/edge_lord#0000/animations/run/rig_run.res" id="3_qn20g"]
 [ext_resource type="ArrayMesh" uid="uid://bucvpq4l3qgh6" path="res://maps/Desert/uploads_files_3835558_desert.obj" id="4_3lc0u"]
 [ext_resource type="ArrayMesh" uid="uid://bhx18putddmt" path="res://maps/Desert/Structures/Free_temple_egypt/obj/objTemple.obj" id="7_wc2lb"]
 [ext_resource type="Texture2D" uid="uid://beagerowm1wva" path="res://maps/Desert/Structures/Free_temple_egypt/textures/egypt_011.jpg" id="8_hl37q"]
