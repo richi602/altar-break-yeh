@@ -295,9 +295,6 @@ func _on_hurtbox_body_entered(body):
 		return
 
 
-	if body.is_in_group("EnemyAttack"):
-
-		take_damage(10)
 
 
 
