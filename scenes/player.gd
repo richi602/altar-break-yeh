@@ -1,9 +1,10 @@
 extends CharacterBody3D
 
-
 # =========================
 # PLAYER SETTINGS
 # =========================
+
+
 
 @export var mouse_sensitivity = 0.003
 
@@ -34,6 +35,7 @@ extends CharacterBody3D
 
 @onready var spring_arm = $SpringArm3D
 @onready var anim = find_child("AnimationPlayer", true, false)
+@onready var projectile_spawn = $ProjectileSpawn
 
 
 
@@ -65,6 +67,16 @@ var air_dash_direction = Vector3.ZERO
 var can_air_dash = true
 var air_dash_cooldown_timer = 0.0
 
+## Attack Combo
+
+@export var combo_reset_time = 1.0
+
+@export var projectile_scene: PackedScene
+@export var projectile_damage = 25
+
+var attacking = false
+var combo_step = 0
+var combo_timer = 0.0
 
 
 # =========================
@@ -118,6 +130,21 @@ func _unhandled_input(event):
 # =========================
 
 func _physics_process(delta):
+
+	# Attack
+
+	if Input.is_action_just_pressed("attack"):
+
+		attack()
+
+
+	if combo_timer > 0:
+
+		combo_timer -= delta
+
+	else:
+
+		combo_step = 0
 
 
 	# TEST DAMAGE
@@ -221,7 +248,97 @@ func get_movement_direction():
 		right * input_dir.x
 	).normalized()
 
+# =========================
+# ATTACK COMBO
+# =========================
 
+func attack():
+
+	print("ATTACK PRESSED")
+
+	if attacking:
+
+		combo_step += 1
+
+	else:
+
+		combo_step = 1
+
+
+	if combo_step > 3:
+
+		combo_step = 1
+
+
+	attacking = true
+
+	combo_timer = combo_reset_time
+
+
+	match combo_step:
+
+		1:
+
+			shoot_projectile(1)
+
+
+		2:
+
+			shoot_projectile(2)
+
+
+		3:
+
+			shoot_projectile(3)
+
+
+	print("Projectile combo:", combo_step)
+
+
+	await get_tree().create_timer(0.2).timeout
+
+
+	attacking = false
+
+
+
+func shoot_projectile(amount):
+
+	for i in range(amount):
+
+		var projectile = projectile_scene.instantiate()
+
+
+		# Set size BEFORE adding to scene
+		if combo_step == 1:
+
+			projectile.projectile_size = 1.0
+			projectile.damage = 25
+
+
+		elif combo_step == 2:
+
+			projectile.projectile_size = 9.5
+			projectile.damage = 40
+
+
+		elif combo_step == 3:
+
+			projectile.projectile_size = 16
+			projectile.damage = 75
+
+
+
+		get_tree().current_scene.add_child(projectile)
+
+
+		projectile.global_position = projectile_spawn.global_position
+
+
+		var direction = -projectile_spawn.global_transform.basis.z
+
+
+		projectile.direction = direction.normalized()
 
 # =========================
 # DODGE

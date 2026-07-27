@@ -15,6 +15,7 @@ script = ExtResource("1_c8fcr")
 shape = SubResource("SphereShape3D_midqa")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="Area3D/CollisionShape3D" unique_id=1200308714]
+transform = Transform3D(-0.9998436, 0, -0.01768655, 0, 1, 0, 0.01768655, 0, -0.9998436, 0, 0, 0)
 mesh = SubResource("SphereMesh_w4ek0")
 
 [connection signal="body_entered" from="Area3D" to="." method="_on_area_3d_body_entered"]

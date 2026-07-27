@@ -1,23 +1,35 @@
-extends Node3D
-
-@export var speed = 10.
-@export var damage = 10.
+extends Area3D
 
 
-
-# Called when the node enters the scene tree for the first time.
-func _ready() -> void:
-	pass
-
-
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta: float) -> void:
-	position += Vector3.FORWARD * speed * delta
-	
+@export var speed = 80.0
+@export var damage = 10
+@export var projectile_size = 1.0
 
 
-func _on_area_3d_body_entered(body: Node3D) -> void:
-	print(body.name)
+var direction = Vector3.ZERO
+
+
+
+func _ready():
+
+	scale = Vector3.ONE * projectile_size
+
+
+
+func _physics_process(delta):
+
+	global_position += direction * speed * delta
+
+
+
+func _on_area_3d_body_entered(body):
+
+	print("Hit:", body.name)
+
+
 	if body.has_method("take_damage"):
+
 		body.take_damage(damage)
+
+
 	queue_free()
