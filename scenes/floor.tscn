@@ -5,6 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://c83slrag17ug6" path="res://scenes/playerprojectile.tscn" id="3_a2b8f"]
 [ext_resource type="Animation" uid="uid://vesiuv4cne8x" path="res://models/richis sketch/edge_lord#0000/animations/run/rig_run.res" id="3_qn20g"]
 [ext_resource type="ArrayMesh" uid="uid://bucvpq4l3qgh6" path="res://maps/Desert/uploads_files_3835558_desert.obj" id="4_3lc0u"]
+[ext_resource type="PackedScene" uid="uid://c127gir3bci6u" path="res://enemy.tscn" id="5_hgjnp"]
 [ext_resource type="ArrayMesh" uid="uid://bhx18putddmt" path="res://maps/Desert/Structures/Free_temple_egypt/obj/objTemple.obj" id="7_wc2lb"]
 [ext_resource type="Texture2D" uid="uid://beagerowm1wva" path="res://maps/Desert/Structures/Free_temple_egypt/textures/egypt_011.jpg" id="8_hl37q"]
 [ext_resource type="ArrayMesh" uid="uid://3hpieoj4onve" path="res://maps/Desert/Structures/bridges/fREE_bridge/obj/objBridge.obj" id="9_qn20g"]
@@ -572,6 +573,9 @@ bones/43/scale = Vector3(1, 1, 1)
 mesh = SubResource("ArrayMesh_xkbv7")
 skin = SubResource("Skin_qf32v")
 skeleton = NodePath("..")
+
+[node name="Enemy" parent="CSGBox3D" unique_id=1721079208 instance=ExtResource("5_hgjnp")]
+transform = Transform3D(-0.8660254, 0, -0.50000006, 0, 1, 0, 0.50000006, 0, -0.8660254, 46.98554, 0.63835925, -0.012985945)
 
 [node name="UploadsFiles3835558Desert" type="MeshInstance3D" parent="." unique_id=774847040]
 transform = Transform3D(10, 0, 0, 0, 10, 0, 0, 0, 10, -3.0597258, 0.47692633, -5.502039)
