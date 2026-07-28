@@ -9,8 +9,8 @@ extends CharacterBody3D
 @export var mouse_sensitivity = 0.003
 
 @export var speed = 40.0
-@export var jump_force = 8.0
-@export var gravity = 20.0
+@export var jump_force = 25.0
+@export var gravity = 50.0
 
 
 # Dodge
@@ -262,12 +262,12 @@ func attack():
 
 	else:
 
-		combo_step = 1
+		combo_step = 2
 
 
-	if combo_step > 3:
+	if combo_step > 2:
 
-		combo_step = 1
+		combo_step = 3
 
 
 	attacking = true
@@ -318,13 +318,13 @@ func shoot_projectile(amount):
 
 		elif combo_step == 2:
 
-			projectile.projectile_size = 9.5
+			projectile.projectile_size = 4
 			projectile.damage = 40
 
 
 		elif combo_step == 3:
 
-			projectile.projectile_size = 16
+			projectile.projectile_size = 8
 			projectile.damage = 75
 
 
