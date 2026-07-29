@@ -1,0 +1,24 @@
+newmtl KIOSk_pilars_lambert13SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd -s_0.5_0.5_egypt_b2.jpg
+bump  -bm 0.1 -s_0.5_0.5_egypt_011b.jpg
+Ni 1.00
+newmtl lambert30SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd -s_0.333333_0.333333_germany010_-_còpia.jpg
+bump  -bm 0.1 -s_0.333333_0.333333_germany010b.jpg
+Ni 1.00
+newmtl lambert31SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd germany001.jpg
+bump  -bm 0.1 germany001b.jpg
+Ni 1.00

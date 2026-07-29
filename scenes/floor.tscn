@@ -1,0 +1,110 @@
+[gd_scene format=3 uid="uid://x0skjdfp3miv"]
+
+[ext_resource type="Texture2D" uid="uid://7jf4ie70feyd" path="res://maps/Desert/red_sand_diff_4k.jpg" id="1_whr1e"]
+[ext_resource type="PackedScene" uid="uid://bk0gswpvkjyjx" path="res://scenes/player.tscn" id="2_hl37q"]
+[ext_resource type="ArrayMesh" uid="uid://bucvpq4l3qgh6" path="res://maps/Desert/uploads_files_3835558_desert.obj" id="4_3lc0u"]
+[ext_resource type="PackedScene" uid="uid://c127gir3bci6u" path="res://enemy.tscn" id="5_hgjnp"]
+[ext_resource type="ArrayMesh" uid="uid://bhx18putddmt" path="res://maps/Desert/Structures/Free_temple_egypt/obj/objTemple.obj" id="7_wc2lb"]
+[ext_resource type="Texture2D" uid="uid://beagerowm1wva" path="res://maps/Desert/Structures/Free_temple_egypt/textures/egypt_011.jpg" id="8_hl37q"]
+[ext_resource type="ArrayMesh" uid="uid://3hpieoj4onve" path="res://maps/Desert/Structures/bridges/fREE_bridge/obj/objBridge.obj" id="9_qn20g"]
+[ext_resource type="Texture2D" uid="uid://cscbiihpgwvpr" path="res://maps/Desert/Structures/Ancient_building4/textures/a3.jpg" id="10_a2b8f"]
+[ext_resource type="Texture2D" uid="uid://c47lpe4hih8jb" path="res://maps/Desert/Textures/Hieroglyph/ET3Diffuse.png" id="10_hgjnp"]
+[ext_resource type="ArrayMesh" uid="uid://dkut3t8vdrk5m" path="res://maps/Desert/Structures/Ancient_building4/obj/objBuilding.obj" id="10_qn20g"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_3lc0u"]
+sky_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
+ground_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
+
+[sub_resource type="Sky" id="Sky_7525o"]
+sky_material = SubResource("ProceduralSkyMaterial_3lc0u")
+
+[sub_resource type="Environment" id="Environment_poy5y"]
+background_mode = 2
+sky = SubResource("Sky_7525o")
+glow_enabled = true
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_3lc0u"]
+albedo_texture = ExtResource("1_whr1e")
+uv1_triplanar = true
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_7525o"]
+albedo_texture = ExtResource("1_whr1e")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_lvm7u"]
+albedo_texture = ExtResource("10_a2b8f")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_a2b8f"]
+albedo_texture = ExtResource("8_hl37q")
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_l7rxn"]
+size = Vector3(53.13611, 1.4731445, 5.380127)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_k67dy"]
+albedo_texture = ExtResource("10_hgjnp")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_12tlq"]
+albedo_texture = ExtResource("10_hgjnp")
+
+[node name="Floor" type="Node3D" unique_id=860377737]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1902653476]
+environment = SubResource("Environment_poy5y")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=784620162]
+transform = Transform3D(-0.8660254, -0.43301278, 0.25, 0, 0.49999997, 0.86602545, -0.50000006, 0.75, -0.43301266, 0, 0, 0)
+light_energy = 0.683
+shadow_enabled = true
+
+[node name="CSGBox3D" type="CSGBox3D" parent="." unique_id=97186226]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0144610405, 0.36164075, 0.012985945)
+material_override = SubResource("StandardMaterial3D_3lc0u")
+use_collision = true
+size = Vector3(1000, 1, 1000)
+
+[node name="Player" parent="CSGBox3D" unique_id=126342862 instance=ExtResource("2_hl37q")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.844046, 9.754745, -60.522507)
+
+[node name="Enemy" parent="CSGBox3D" unique_id=1721079208 instance=ExtResource("5_hgjnp")]
+transform = Transform3D(-0.8660254, 0, -0.50000006, 0, 1, 0, 0.50000006, 0, -0.8660254, 46.98554, 0.63835925, -0.012985945)
+
+[node name="UploadsFiles3835558Desert" type="MeshInstance3D" parent="." unique_id=774847040]
+transform = Transform3D(10, 0, 0, 0, 10, 0, 0, 0, 10, -3.0597258, 0.47692633, -5.502039)
+material_override = SubResource("StandardMaterial3D_7525o")
+mesh = ExtResource("4_3lc0u")
+
+[node name="ObjTemple" type="MeshInstance3D" parent="." unique_id=2075157120]
+transform = Transform3D(4.265521, 0, -2.6087027, 0, 5, 0, 2.6087027, 0, 4.265521, 5.7951775, 0.77777576, -15.822431)
+material_override = SubResource("StandardMaterial3D_lvm7u")
+mesh = ExtResource("7_wc2lb")
+
+[node name="ObjBridge" type="MeshInstance3D" parent="." unique_id=1276026308]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.5017624, 0.861639, -60.212986)
+material_override = SubResource("StandardMaterial3D_a2b8f")
+mesh = ExtResource("9_qn20g")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="ObjBridge" unique_id=72713325]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ObjBridge/StaticBody3D" unique_id=1034722636]
+transform = Transform3D(1, 0, 0, 0, 0.88730615, -0.46118084, 0, 0.46118084, 0.88730615, 0.1453247, 8.376172, 0.27038574)
+shape = SubResource("BoxShape3D_l7rxn")
+
+[node name="ObjBridge2" type="MeshInstance3D" parent="." unique_id=449136436]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 59.2977, 0.861639, -60.212986)
+material_override = SubResource("StandardMaterial3D_a2b8f")
+mesh = ExtResource("9_qn20g")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="ObjBridge2" unique_id=1583879714]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ObjBridge2/StaticBody3D" unique_id=40330797]
+transform = Transform3D(1, 0, 0, 0, 0.88730615, -0.46118084, 0, 0.46118084, 0.88730615, 0.1453247, 8.376172, 0.27038574)
+shape = SubResource("BoxShape3D_l7rxn")
+
+[node name="ObjBuilding" type="MeshInstance3D" parent="." unique_id=2005694152]
+transform = Transform3D(2.7218137, 0, 18.804035, 7.680937, 17.342638, -1.1117868, -17.163767, 7.760984, 2.4843912, 69.17355, -12.616871, -12.93458)
+material_override = SubResource("StandardMaterial3D_k67dy")
+mesh = ExtResource("10_qn20g")
+
+[node name="ObjBuilding2" type="MeshInstance3D" parent="." unique_id=1529728077]
+transform = Transform3D(-2.679454, 2.3828602, 18.658577, -14.922615, 11.204588, -3.573876, -11.451458, -15.158466, 0.2913853, 69.17355, -16.172733, 20.48734)
+material_override = SubResource("StandardMaterial3D_12tlq")
+mesh = ExtResource("10_qn20g")
