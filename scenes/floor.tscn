@@ -64,8 +64,11 @@ size = Vector3(1000, 1, 1000)
 [node name="Player" parent="CSGBox3D" unique_id=126342862 instance=ExtResource("2_hl37q")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.844046, 9.754745, -60.522507)
 
-[node name="Enemy" parent="CSGBox3D" unique_id=1721079208 instance=ExtResource("5_hgjnp")]
+[node name="Enemy" parent="CSGBox3D" unique_id=1721079208 groups=["enemies"] instance=ExtResource("5_hgjnp")]
 transform = Transform3D(-0.8660254, 0, -0.50000006, 0, 1, 0, 0.50000006, 0, -0.8660254, 46.98554, 0.63835925, -0.012985945)
+
+[node name="Enemy2" parent="CSGBox3D" unique_id=784329587 groups=["enemies"] instance=ExtResource("5_hgjnp")]
+transform = Transform3D(-0.8660254, 0, -0.50000006, 0, 1, 0, 0.50000006, 0, -0.8660254, 42.30851, 0.63835925, -0.012985945)
 
 [node name="UploadsFiles3835558Desert" type="MeshInstance3D" parent="." unique_id=774847040]
 transform = Transform3D(10, 0, 0, 0, 10, 0, 0, 0, 10, -3.0597258, 0.47692633, -5.502039)

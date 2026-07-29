@@ -6,6 +6,8 @@ extends CharacterBody3D
 
 
 
+
+
 @export var mouse_sensitivity = 0.003
 
 @export var speed = 40.0
@@ -33,6 +35,7 @@ extends CharacterBody3D
 # REFERENCES
 # =========================
 
+
 @onready var spring_arm = $SpringArm3D
 @onready var anim = find_child("AnimationPlayer", true, false)
 @onready var projectile_spawn = $ProjectileSpawn
@@ -44,7 +47,13 @@ extends CharacterBody3D
 # =========================
 
 var health = max_health
+# Lock On System
 
+var locked_enemy = null
+var lock_targets = []
+var lock_index = 0
+
+@export var lock_range = 50.0
 
 # Dodge
 var is_dodging = false
@@ -74,9 +83,16 @@ var air_dash_cooldown_timer = 0.0
 @export var projectile_scene: PackedScene
 @export var projectile_damage = 25
 
+@export var secondary_damage = 50
+@export var secondary_cooldown = 2.0
+
+var secondary_timer = 0.0
+
 var attacking = false
 var combo_step = 0
 var combo_timer = 0.0
+
+
 
 
 # =========================
@@ -86,6 +102,7 @@ var combo_timer = 0.0
 func _ready():
 
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+
 
 
 	if anim:
@@ -123,6 +140,32 @@ func _unhandled_input(event):
 			deg_to_rad(30)
 		)
 
+	# =========================
+	# LOCK ON INPUT
+	# =========================
+
+	if event is InputEventMouseButton:
+
+
+		# Middle mouse button = lock/unlock
+
+		if event.button_index == MOUSE_BUTTON_MIDDLE and event.pressed:
+
+			toggle_lock()
+
+
+
+		# Scroll wheel = switch target
+
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP and event.pressed:
+
+			switch_target(1)
+
+
+
+		if event.button_index == MOUSE_BUTTON_WHEEL_DOWN and event.pressed:
+
+			switch_target(-1)
 
 
 # =========================
@@ -247,6 +290,103 @@ func get_movement_direction():
 		forward * input_dir.y +
 		right * input_dir.x
 	).normalized()
+	
+
+# =========================
+# LOCK ON SYSTEM
+# =========================
+
+func toggle_lock():
+
+	if is_instance_valid(locked_enemy):
+
+		locked_enemy = null
+
+		print("Lock OFF")
+
+
+	else:
+
+		find_targets()
+
+
+		if lock_targets.size() > 0:
+
+			lock_index = 0
+
+			locked_enemy = lock_targets[0]
+
+			print("Locked:", locked_enemy.name)
+
+
+
+func find_targets():
+
+	lock_targets.clear()
+
+
+	var enemies = get_tree().get_nodes_in_group("enemies")
+
+
+	for enemy in enemies:
+
+		# Only accept 3D objects
+
+		if enemy is Node3D:
+
+			var distance = global_position.distance_to(
+				enemy.global_position
+			)
+
+
+			if distance <= lock_range:
+
+				lock_targets.append(enemy)
+
+
+
+func switch_target(direction):
+
+	# Remove dead enemies
+
+	for enemy in lock_targets:
+
+		if not is_instance_valid(enemy):
+
+			lock_targets.erase(enemy)
+
+
+
+	if lock_targets.size() == 0:
+
+		locked_enemy = null
+
+		return
+
+
+
+	lock_index += direction
+
+
+
+	if lock_index >= lock_targets.size():
+
+		lock_index = 0
+
+
+
+	if lock_index < 0:
+
+		lock_index = lock_targets.size() - 1
+
+
+
+	locked_enemy = lock_targets[lock_index]
+
+
+	if is_instance_valid(locked_enemy):
+
+		print("Switched to:", locked_enemy.name)
 
 # =========================
 # ATTACK COMBO

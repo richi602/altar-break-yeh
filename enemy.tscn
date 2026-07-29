@@ -32,5 +32,7 @@ shape = SubResource("CapsuleShape3D_w4ek0")
 transform = Transform3D(26.445, 0, 0, 0, 26.445, 0, 0, 0, 26.445, 0, 0, 0)
 shape = SubResource("SphereShape3D_midqa")
 
+[node name="Node" type="Node" parent="." unique_id=1671996730 groups=["enemies"]]
+
 [connection signal="body_entered" from="CollisionShape3D/Hurtbox" to="." method="_on_hurtbox_body_entered"]
 [connection signal="body_entered" from="AggroRadius" to="." method="_on_aggro_radius_body_entered"]
