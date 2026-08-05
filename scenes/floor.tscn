@@ -2,6 +2,7 @@
 
 [ext_resource type="Texture2D" uid="uid://7jf4ie70feyd" path="res://maps/Desert/red_sand_diff_4k.jpg" id="1_whr1e"]
 [ext_resource type="PackedScene" uid="uid://bk0gswpvkjyjx" path="res://scenes/player.tscn" id="2_hl37q"]
+[ext_resource type="Texture2D" uid="uid://c3s0hkrjowfyc" path="res://textures/1941588-middle-removebg-preview.png" id="3_a2b8f"]
 [ext_resource type="ArrayMesh" uid="uid://bucvpq4l3qgh6" path="res://maps/Desert/uploads_files_3835558_desert.obj" id="4_3lc0u"]
 [ext_resource type="PackedScene" uid="uid://c127gir3bci6u" path="res://enemy.tscn" id="5_hgjnp"]
 [ext_resource type="ArrayMesh" uid="uid://bhx18putddmt" path="res://maps/Desert/Structures/Free_temple_egypt/obj/objTemple.obj" id="7_wc2lb"]
@@ -10,6 +11,7 @@
 [ext_resource type="Texture2D" uid="uid://cscbiihpgwvpr" path="res://maps/Desert/Structures/Ancient_building4/textures/a3.jpg" id="10_a2b8f"]
 [ext_resource type="Texture2D" uid="uid://c47lpe4hih8jb" path="res://maps/Desert/Textures/Hieroglyph/ET3Diffuse.png" id="10_hgjnp"]
 [ext_resource type="ArrayMesh" uid="uid://dkut3t8vdrk5m" path="res://maps/Desert/Structures/Ancient_building4/obj/objBuilding.obj" id="10_qn20g"]
+[ext_resource type="Script" uid="uid://2g3su7k75p0g" path="res://scenes/enemy_spawner.gd" id="12_hgjnp"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_3lc0u"]
 sky_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
@@ -64,14 +66,18 @@ size = Vector3(1000, 1, 1000)
 [node name="Player" parent="CSGBox3D" unique_id=126342862 instance=ExtResource("2_hl37q")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.844046, 9.754745, -60.522507)
 
-[node name="Enemy" parent="CSGBox3D" unique_id=1721079208 groups=["enemies"] instance=ExtResource("5_hgjnp")]
-transform = Transform3D(-0.8660254, 0, -0.50000006, 0, 1, 0, 0.50000006, 0, -0.8660254, 46.98554, 0.63835925, -0.012985945)
+[node name="CanvasLayer" type="CanvasLayer" parent="CSGBox3D/Player" unique_id=2044522558]
 
-[node name="Enemy2" parent="CSGBox3D" unique_id=784329587 groups=["enemies"] instance=ExtResource("5_hgjnp")]
-transform = Transform3D(-0.8660254, 0, -0.50000006, 0, 1, 0, 0.50000006, 0, -0.8660254, 42.30851, 0.63835925, -0.012985945)
+[node name="LockReticle" type="TextureRect" parent="CSGBox3D/Player/CanvasLayer" unique_id=1595117521 groups=["lock_reticle"]]
+offset_left = 0.5
+offset_right = 64.5
+offset_bottom = 64.0
+pivot_offset = Vector2(32, 32)
+texture = ExtResource("3_a2b8f")
+expand_mode = 1
 
 [node name="UploadsFiles3835558Desert" type="MeshInstance3D" parent="." unique_id=774847040]
-transform = Transform3D(10, 0, 0, 0, 10, 0, 0, 0, 10, -3.0597258, 0.47692633, -5.502039)
+transform = Transform3D(10, 0, 0, 0, 10, 0, 0, 0, 10, -3.0597258, -4.051766, -5.502039)
 material_override = SubResource("StandardMaterial3D_7525o")
 mesh = ExtResource("4_3lc0u")
 
@@ -111,3 +117,14 @@ mesh = ExtResource("10_qn20g")
 transform = Transform3D(-2.679454, 2.3828602, 18.658577, -14.922615, 11.204588, -3.573876, -11.451458, -15.158466, 0.2913853, 69.17355, -16.172733, 20.48734)
 material_override = SubResource("StandardMaterial3D_12tlq")
 mesh = ExtResource("10_qn20g")
+
+[node name="EnemySpawner" type="Node3D" parent="." unique_id=1566692964]
+transform = Transform3D(5, 0, 0, 0, 5, 0, 0, 0, 5, 41.078, 0.13263273, 2.48)
+script = ExtResource("12_hgjnp")
+enemy_scene = ExtResource("5_hgjnp")
+
+[node name="SpawnPoint" type="Marker3D" parent="EnemySpawner" unique_id=975716068]
+transform = Transform3D(10, 0, 0, 0, 10, 0, 0, 0, 10, 0, 0.956968, 0)
+
+[node name="Enemy" parent="EnemySpawner/SpawnPoint" unique_id=1721079208 groups=["enemies"] instance=ExtResource("5_hgjnp")]
+transform = Transform3D(-0.017320508, 0, -0.010000001, 0, 0.02, 0, 0.010000001, 0, -0.017320508, 0.11844003, -0.075696796, -0.049599998)

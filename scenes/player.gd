@@ -35,12 +35,13 @@ extends CharacterBody3D
 # REFERENCES
 # =========================
 
-
+@export var lock_turn_speed = 5.0
 @onready var spring_arm = $SpringArm3D
+@onready var camera = $SpringArm3D/Camera3D
 @onready var anim = find_child("AnimationPlayer", true, false)
 @onready var projectile_spawn = $ProjectileSpawn
 
-
+var lock_reticle
 
 # =========================
 # VARIABLES
@@ -102,6 +103,18 @@ var combo_timer = 0.0
 func _ready():
 
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	lock_reticle = get_tree().get_first_node_in_group("lock_reticle")
+
+
+
+
+	if lock_reticle:
+
+		lock_reticle.hide()
+
+	else:
+
+		print("No lock reticle found")
 
 
 
@@ -128,11 +141,9 @@ func _unhandled_input(event):
 
 		rotate_y(-event.relative.x * mouse_sensitivity)
 
-
 		spring_arm.rotate_x(
 			event.relative.y * mouse_sensitivity
 		)
-
 
 		spring_arm.rotation.x = clamp(
 			spring_arm.rotation.x,
@@ -146,25 +157,16 @@ func _unhandled_input(event):
 
 	if event is InputEventMouseButton:
 
-
-		# Middle mouse button = lock/unlock
-
+		# Middle mouse = Lock / Unlock
 		if event.button_index == MOUSE_BUTTON_MIDDLE and event.pressed:
-
 			toggle_lock()
 
-
-
-		# Scroll wheel = switch target
-
+		# Scroll wheel = Next target
 		if event.button_index == MOUSE_BUTTON_WHEEL_UP and event.pressed:
-
 			switch_target(1)
 
-
-
+		# Scroll wheel = Previous target
 		if event.button_index == MOUSE_BUTTON_WHEEL_DOWN and event.pressed:
-
 			switch_target(-1)
 
 
@@ -252,14 +254,50 @@ func _physics_process(delta):
 		velocity.z = direction.z * speed
 
 
-
+	# Animation
 	update_animation(direction)
-
-
+	
+		# Movement
 	move_and_slide()
 
+	# Lock camera
+	update_lock_camera(delta)
+
+	# Reticle position
+	update_lock_reticle()
 
 
+# =========================
+# LOCK CAMERA
+# =========================
+
+func update_lock_camera(delta):
+
+	if not is_instance_valid(locked_enemy):
+		return
+
+
+	var target_position = locked_enemy.global_position + Vector3.UP * 1.5
+
+	var direction = target_position - global_position
+
+	direction.y = 0
+
+
+	if direction.length() > 0:
+
+		var target_rotation = atan2(
+			direction.x,
+			direction.z
+		)
+
+
+		# Rotate player toward enemy
+		rotation.y = lerp_angle(
+			rotation.y,
+			target_rotation,
+			lock_turn_speed * delta
+		)
 # =========================
 # MOVEMENT
 # =========================
@@ -297,10 +335,18 @@ func get_movement_direction():
 # =========================
 
 func toggle_lock():
+	
+	
 
 	if is_instance_valid(locked_enemy):
 
 		locked_enemy = null
+
+
+		if lock_reticle:
+
+			lock_reticle.hide()
+
 
 		print("Lock OFF")
 
@@ -316,6 +362,12 @@ func toggle_lock():
 
 			locked_enemy = lock_targets[0]
 
+
+			if lock_reticle:
+
+				lock_reticle.show()
+
+
 			print("Locked:", locked_enemy.name)
 
 
@@ -329,8 +381,6 @@ func find_targets():
 
 
 	for enemy in enemies:
-
-		# Only accept 3D objects
 
 		if enemy is Node3D:
 
@@ -346,8 +396,6 @@ func find_targets():
 
 
 func switch_target(direction):
-
-	# Remove dead enemies
 
 	for enemy in lock_targets:
 
@@ -368,11 +416,9 @@ func switch_target(direction):
 	lock_index += direction
 
 
-
 	if lock_index >= lock_targets.size():
 
 		lock_index = 0
-
 
 
 	if lock_index < 0:
@@ -752,7 +798,30 @@ func get_all_meshes(node):
 
 	return meshes
 
+func update_lock_reticle():
 
+	if not lock_reticle:
+		return
+
+
+	if locked_enemy == null or not is_instance_valid(locked_enemy):
+
+		lock_reticle.hide()
+		locked_enemy = null
+
+		return
+
+
+	lock_reticle.show()
+
+
+	var enemy_position = locked_enemy.global_position + Vector3.UP * 2.5
+
+
+	var screen_position = camera.unproject_position(enemy_position)
+
+
+	lock_reticle.position = screen_position
 
 # =========================
 # DEATH

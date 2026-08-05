@@ -1,0 +1,15 @@
+[gd_scene format=3 uid="uid://cxviyq43wm8hu"]
+
+[ext_resource type="Script" uid="uid://2g3su7k75p0g" path="res://scenes/enemy_spawner.gd" id="1_devoi"]
+[ext_resource type="PackedScene" uid="uid://c127gir3bci6u" path="res://enemy.tscn" id="2_xl0gr"]
+
+[node name="EnemySpawner" type="Node3D" unique_id=463900158]
+transform = Transform3D(5, 0, 0, 0, 5, 0, 0, 0, 5, 0, 0, 0)
+script = ExtResource("1_devoi")
+enemy_scene = ExtResource("2_xl0gr")
+
+[node name="SpawnPoint" type="Marker3D" parent="." unique_id=1021928360]
+transform = Transform3D(10, 0, 0, 0, 10, 0, 0, 0, 10, 0, 0.956968, 0)
+
+[node name="Enemy" parent="SpawnPoint" unique_id=1721079208 groups=["enemies"] instance=ExtResource("2_xl0gr")]
+transform = Transform3D(-0.017320508, 0, -0.010000001, 0, 0.02, 0, 0.010000001, 0, -0.017320508, 0.11844003, -0.075696796, -0.049599998)
