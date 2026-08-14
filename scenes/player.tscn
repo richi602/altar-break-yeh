@@ -1,9 +1,10 @@
 [gd_scene format=4 uid="uid://bk0gswpvkjyjx"]
 
 [ext_resource type="Script" uid="uid://dkhimx4yxkxo2" path="res://scenes/player.gd" id="1_g2els"]
-[ext_resource type="PackedScene" uid="uid://kl6meqvkrk2c" path="res://scenes/playerprojectile.tscn" id="2_qhqgy"]
+[ext_resource type="PackedScene" path="res://scenes/playerprojectile.tscn" id="2_qhqgy"]
 [ext_resource type="Animation" uid="uid://vesiuv4cne8x" path="res://models/richis sketch/edge_lord#0000/animations/run/rig_run.res" id="3_dqkch"]
 [ext_resource type="PackedScene" path="res://scenes/HomingProjectile.tscn" id="3_qlg0r"]
+[ext_resource type="Texture2D" uid="uid://c3s0hkrjowfyc" path="res://textures/1941588-middle-removebg-preview.png" id="4_dqkch"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_5dpxp"]
 height = 4.5039063
@@ -524,5 +525,13 @@ offset_top = 595.0
 offset_right = 1151.0
 offset_bottom = 645.0
 value = 100.0
+
+[node name="LockReticle" type="TextureRect" parent="CanvasLayer" unique_id=279725031 groups=["lock_reticle"]]
+offset_left = 0.5
+offset_right = 64.5
+offset_bottom = 64.0
+pivot_offset = Vector2(32, 32)
+texture = ExtResource("4_dqkch")
+expand_mode = 1
 
 [connection signal="body_entered" from="SpringArm3D/hurtbox" to="." method="_on_hurtbox_body_entered"]

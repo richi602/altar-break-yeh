@@ -764,23 +764,17 @@ func shoot_projectile(
 
 		var projectile
 
-
 		if combo_step == 3:
-
 			if homing_projectile_scene == null:
-
 				print(
 					"ERROR: Homing projectile scene is not assigned!"
 				)
-
 				return
 
 
 			projectile = (
 				homing_projectile_scene.instantiate()
 			)
-
-
 		else:
 
 			if projectile_scene == null:
