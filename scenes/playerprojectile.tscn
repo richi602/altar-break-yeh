@@ -1,26 +1,31 @@
-[gd_scene format=3 uid="uid://c83slrag17ug6"]
+[gd_scene load_steps=5 format=3]
 
-[ext_resource type="Script" uid="uid://pldkxbng78cn" path="res://scenes/projectile.gd" id="1_a2uwr"]
+[ext_resource type="Script" path="res://scenes/projectile.gd" id="1_script"]
 
-[sub_resource type="SphereMesh" id="SphereMesh_0hh2j"]
+[sub_resource type="StandardMaterial3D" id="ProjectileMaterial"]
+shading_mode = 0
+albedo_color = Color(0.1, 1, 0.1, 1)
+emission_enabled = true
+emission = Color(0.1, 1, 0.1, 1)
+emission_energy_multiplier = 4.0
 
-[sub_resource type="SphereShape3D" id="SphereShape3D_midqa"]
+[sub_resource type="SphereMesh" id="ProjectileMesh"]
+material = SubResource("ProjectileMaterial")
+radius = 0.75
+height = 1.5
 
-[sub_resource type="SphereShape3D" id="SphereShape3D_0hh2j"]
-radius = 0.5457015
+[sub_resource type="SphereShape3D" id="ProjectileShape"]
+radius = 0.5
 
-[node name="Projectile" type="Area3D" unique_id=1811834979]
-script = ExtResource("1_a2uwr")
+[node name="Projectile" type="Area3D"]
+monitoring = true
+monitorable = true
+script = ExtResource("1_script")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=1200308714]
-mesh = SubResource("SphereMesh_0hh2j")
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = SubResource("ProjectileMesh")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=969889964 groups=["EnemyAttack"]]
-shape = SubResource("SphereShape3D_midqa")
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("ProjectileShape")
 
-[node name="Area3D" type="Area3D" parent="." unique_id=262865122]
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Area3D" unique_id=1230503098]
-shape = SubResource("SphereShape3D_0hh2j")
-
-[connection signal="body_entered" from="Area3D" to="." method="_on_area_3d_body_entered"]
+[connection signal="body_entered" from="." to="." method="_on_body_entered"]

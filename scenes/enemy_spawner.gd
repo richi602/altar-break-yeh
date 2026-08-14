@@ -1,62 +1,220 @@
 extends Node3D
 
+
+# =========================
+# SPAWNER SETTINGS
+# =========================
+
 @export var enemy_scene: PackedScene
-@export var respawn_time = 1.0
 
-@onready var spawn_point = $SpawnPoint
+@export var max_alive_enemies = 5
+@export var spawn_delay = 0.5
+@export var respawn_time = 2.0
 
+
+# =========================
+# REFERENCES
+# =========================
+
+@export var spawn_points_parent: Node3D
+
+var spawn_points = []
+
+
+# =========================
+# VARIABLES
+# =========================
+
+var alive_enemies = 0
+var next_spawn_index = 0
+
+
+# =========================
+# START
+# =========================
 
 func _ready():
-	
-	add_to_group("enemies")
+
+	if spawn_points_parent == null:
+
+		print(
+			"ERROR: Spawn Points Parent is not assigned!"
+		)
+
+		return
+
+
+	spawn_points = (
+		spawn_points_parent.get_children()
+	)
+
+
+	if spawn_points.size() == 0:
+
+		print(
+			"ERROR: No spawn points found!"
+		)
+
+		return
+
 
 	print("Spawner Ready")
 
-	spawn_enemy()
+
+	call_deferred(
+		"spawn_starting_enemies"
+	)
 
 
+# =========================
+# INITIAL SPAWN
+# =========================
+
+func spawn_starting_enemies():
+
+	await get_tree().process_frame
+
+
+	for i in range(
+		max_alive_enemies
+	):
+
+		await spawn_enemy()
+
+
+		if i < max_alive_enemies - 1:
+
+			await get_tree().create_timer(
+				spawn_delay
+			).timeout
+
+
+# =========================
+# SPAWN ENEMY
+# =========================
 
 func spawn_enemy():
 
-	print("Trying to spawn enemy")
+	if not is_inside_tree():
+		return
 
 
 	if enemy_scene == null:
 
-		print("ERROR: No enemy scene assigned")
+		print(
+			"ERROR: No enemy scene assigned"
+		)
 
 		return
 
+
+	if spawn_points.size() == 0:
+
+		print(
+			"ERROR: No spawn points found"
+		)
+
+		return
+
+
+	if alive_enemies >= max_alive_enemies:
+		return
 
 
 	var enemy = enemy_scene.instantiate()
 
 
-	# Add enemy safely
-	get_tree().current_scene.call_deferred("add_child", enemy)
+	if enemy == null:
+
+		print(
+			"ERROR: Enemy failed to instantiate"
+		)
+
+		return
 
 
-	# Wait until enemy is in the scene
+	var spawn_point = (
+		spawn_points[
+			next_spawn_index
+		]
+	)
+
+
+	next_spawn_index += 1
+
+
+	if next_spawn_index >= spawn_points.size():
+
+		next_spawn_index = 0
+
+
+	var current_scene = (
+		get_tree().current_scene
+	)
+
+
+	if current_scene == null:
+
+		enemy.queue_free()
+
+		return
+
+
+	current_scene.call_deferred(
+		"add_child",
+		enemy
+	)
+
+
 	await get_tree().process_frame
 
 
-	enemy.global_position = spawn_point.global_position
+	if not is_instance_valid(enemy):
+		return
 
 
-	print("Enemy Spawned")
+	if not enemy.is_inside_tree():
+		return
 
 
-	# Wait for enemy death
-	enemy.tree_exited.connect(enemy_dead)
+	enemy.global_position = (
+		spawn_point.global_position
+	)
 
 
+	alive_enemies += 1
+
+
+	enemy.tree_exited.connect(
+		enemy_dead
+	)
+
+
+# =========================
+# ENEMY DIED
+# =========================
 
 func enemy_dead():
 
-	print("Enemy died, starting respawn timer")
+	alive_enemies -= 1
 
 
-	await get_tree().create_timer(respawn_time).timeout
+	if alive_enemies < 0:
+
+		alive_enemies = 0
 
 
-	spawn_enemy()
+	if not is_inside_tree():
+		return
+
+
+	await get_tree().create_timer(
+		respawn_time
+	).timeout
+
+
+	if not is_inside_tree():
+		return
+
+
+	await spawn_enemy()

@@ -2,16 +2,27 @@
 
 [ext_resource type="Script" uid="uid://470q3fsfhfxc" path="res://enemy.gd" id="1_4gyqm"]
 [ext_resource type="ArrayMesh" uid="uid://cs4y8upcbrgig" path="res://maps/Desert/Enemy/Enemy - 01/Enemi - CH 3.obj" id="1_7k104"]
+[ext_resource type="PackedScene" uid="uid://cjo57wawo8ow6" path="res://enemy_health_bar.tscn" id="3_qi2p4"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_midqa"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_w4ek0"]
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_midqa"]
+radius = 2.335
 
-[node name="Enemy" type="CharacterBody3D" unique_id=1721079208 node_paths=PackedStringArray("aggroRadius")]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_qi2p4"]
+albedo_color = Color(0.15487596, 0.154876, 0.15487596, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_2mg0b"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_iifgy"]
+albedo_color = Color(1, 0.2053101, 0.21702439, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_cpsmh"]
+
+[node name="Enemy" type="CharacterBody3D" unique_id=1721079208]
 script = ExtResource("1_4gyqm")
-aggroRadius = NodePath("AggroRadius")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=454881635]
 transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 2, 0)
@@ -34,5 +45,25 @@ shape = SubResource("SphereShape3D_midqa")
 
 [node name="Node" type="Node" parent="." unique_id=1671996730 groups=["enemies"]]
 
+[node name="EnemyHealthBar" parent="." unique_id=1086649000 instance=ExtResource("3_qi2p4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.2314177, 0)
+
+[node name="Background" parent="EnemyHealthBar" index="0" unique_id=1596591011]
+transform = Transform3D(2.2, 0, 0, 0, 0.18, 0, 0, 0, 0.1, 0.44257814, 0.13082504, -0.16225713)
+material_override = SubResource("StandardMaterial3D_qi2p4")
+surface_material_override/0 = SubResource("StandardMaterial3D_2mg0b")
+
+[node name="Fill" parent="EnemyHealthBar" index="1" unique_id=721942342]
+transform = Transform3D(4.399759, -0.0006492506, 0, 0.046075847, 0.061996598, 0, 0, 0, 0.01, 0.4391234, 0.21125793, 0.24716616)
+material_override = SubResource("StandardMaterial3D_iifgy")
+surface_material_override/0 = SubResource("StandardMaterial3D_cpsmh")
+
+[node name="AttackTelegraph" type="Label3D" parent="." unique_id=2049348972]
+transform = Transform3D(7, 0, 0, 0, 7, 0, 0, 0, 7, 0.12002027, 5.2989163, 0)
+modulate = Color(1, 0.05882353, 0, 1)
+text = "!!!!"
+
 [connection signal="body_entered" from="CollisionShape3D/Hurtbox" to="." method="_on_hurtbox_body_entered"]
 [connection signal="body_entered" from="AggroRadius" to="." method="_on_aggro_radius_body_entered"]
+
+[editable path="EnemyHealthBar"]
