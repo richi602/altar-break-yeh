@@ -6,7 +6,6 @@ extends CharacterBody3D
 # =============================================================================
 
 @onready var health_bar = $EnemyHealthBar
-@onready var attack_telegraph = $AttackTelegraph
 
 
 # =============================================================================
@@ -15,26 +14,70 @@ extends CharacterBody3D
 
 @export_category("Movement")
 
-@export var move_speed = 30.0
+@export var move_speed = 18.0
 @export var gravity = 20.0
-@export var turn_speed = 10.0
-@export var movement_acceleration = 60.0
+@export var turn_speed = 8.0
+@export var acceleration = 45.0
 
-@export_group("Enemy Separation")
+# The ranged enemy tries to stay around this distance.
+@export var preferred_distance = 16.0
+
+# Too close = back away.
+@export var retreat_distance = 9.0
+
+# Too far = chase.
+@export var chase_distance = 24.0
+
+
+# =============================================================================
+# ENEMY SEPARATION
+# =============================================================================
+
+@export_category("Separation")
+
 @export var separation_radius = 5.0
-@export var separation_strength = 0.75
+@export var separation_strength = 0.8
 
 
 # =============================================================================
-# FALL DAMAGE
+# RANGED ATTACK
 # =============================================================================
 
-@export_category("Fall Damage")
+@export_category("Projectile Attack")
 
-@export var safe_fall_distance = 6.0
-@export var fall_damage_per_unit = 5.0
+@export var projectile_scene: PackedScene
 
-var highest_air_position = 0.0
+@export var attack_range = 30.0
+@export var attack_cooldown = 1.4
+
+# Total warning duration.
+@export var attack_windup = 0.9
+
+# Warning follows Lucian for this amount of time.
+@export var tracking_time = 0.50
+
+# Projectile spawn position.
+@export var projectile_height = 1.5
+@export var projectile_forward_offset = 1.3
+
+# Telegraph size.
+@export var telegraph_length = 30.0
+@export var telegraph_width = 0.35
+@export var telegraph_height = 0.35
+
+
+# =============================================================================
+# ATTACK STATE
+# =============================================================================
+
+var can_attack = true
+var attack_in_progress = false
+var attack_cancelled = false
+
+var locked_shot_direction = Vector3.ZERO
+
+var aim_telegraph: MeshInstance3D
+var aim_material: StandardMaterial3D
 
 
 # =============================================================================
@@ -64,63 +107,15 @@ var active_finishers = {}
 
 
 # =============================================================================
-# MELEE ATTACK
+# FALL DAMAGE
 # =============================================================================
 
-@export_category("Melee Attack")
+@export_category("Fall Damage")
 
-@export var attack_range = 3.0
-@export var attack_damage = 20
+@export var safe_fall_distance = 6.0
+@export var fall_damage_per_unit = 5.0
 
-@export var attack_windup = 0.35
-@export var attack_recovery = 0.25
-@export var attack_cooldown = 1.0
-
-
-# =============================================================================
-# RANGED MELEE ATTACK
-# =============================================================================
-
-@export_category("Ranged Melee")
-
-# How far the giant cleave reaches.
-@export var ranged_melee_range = 18.0
-
-# Width of the danger lane.
-@export var ranged_melee_width = 4.0
-
-# Vertical reach.
-# This lets the attack threaten Lucian in the air.
-@export var ranged_melee_height = 8.0
-
-@export var ranged_melee_damage = 24
-
-# Total warning time.
-@export var ranged_melee_windup = 0.85
-
-# Enemy follows Lucian with the warning for this long.
-# After this, the warning LOCKS in place.
-@export var ranged_melee_tracking_time = 0.45
-
-@export var ranged_melee_recovery = 0.35
-@export var ranged_melee_cooldown = 1.25
-
-# Tiny visual flash when the attack actually fires.
-@export var ranged_melee_strike_flash = 0.08
-
-
-# =============================================================================
-# ATTACK STATE
-# =============================================================================
-
-var can_attack = true
-var attack_in_progress = false
-var attack_cancelled = false
-
-var ranged_attack_direction = Vector3.ZERO
-
-var ranged_telegraph: MeshInstance3D
-var ranged_telegraph_material: StandardMaterial3D
+var highest_air_position = 0.0
 
 
 # =============================================================================
@@ -129,7 +124,7 @@ var ranged_telegraph_material: StandardMaterial3D
 
 @export_category("Health")
 
-@export var max_health: float = 100.0
+@export var max_health: float = 80.0
 
 var health: float
 
@@ -153,14 +148,17 @@ var aggro = false
 func _ready():
 	add_to_group("enemies")
 
-	attack_telegraph.hide()
-
 	health = max_health
-	health_bar.set_health(health, max_health)
+
+	if health_bar:
+		health_bar.set_health(
+			health,
+			max_health
+		)
 
 	highest_air_position = global_position.y
 
-	create_ranged_melee_telegraph()
+	create_aim_telegraph()
 
 
 # =============================================================================
@@ -171,7 +169,7 @@ func _physics_process(delta):
 	update_gravity(delta)
 	update_hit_timers(delta)
 
-	# Knockback owns movement.
+	# Knockback controls movement.
 	if knockback_timer > 0.0:
 		velocity.x = move_toward(
 			velocity.x,
@@ -188,25 +186,24 @@ func _physics_process(delta):
 		move_enemy()
 		return
 
-	# Stun owns movement.
+	# Stunned.
 	if stun_timer > 0.0:
-		brake_horizontal(delta)
+		stop_horizontal(delta)
 		move_enemy()
 		return
 
-	# No target.
 	if not is_instance_valid(Player):
 		Player = null
 
-		brake_horizontal(delta)
+		stop_horizontal(delta)
 		move_enemy()
 		return
 
 	face_player(delta)
 
-	# Enemy stands still while committing to an attack.
+	# Freeze horizontal movement while attacking.
 	if attack_in_progress:
-		brake_horizontal(delta)
+		stop_horizontal(delta)
 		move_enemy()
 		return
 
@@ -215,22 +212,27 @@ func _physics_process(delta):
 	)
 
 	# ---------------------------------------------------------
-	# TOO FAR AWAY
-	# Chase until the enemy reaches ranged-melee distance.
+	# POSITIONING
 	# ---------------------------------------------------------
 
-	if distance > ranged_melee_range:
-		chase_player(delta)
+	if distance > chase_distance:
+		move_toward_player(delta)
 
-	# ---------------------------------------------------------
-	# ATTACK RANGE
-	# ---------------------------------------------------------
+	elif distance < retreat_distance:
+		move_away_from_player(delta)
 
 	else:
-		brake_horizontal(delta)
+		stop_horizontal(delta)
 
-		if can_attack:
-			attack()
+	# ---------------------------------------------------------
+	# ATTACK
+	# ---------------------------------------------------------
+
+	if (
+		distance <= attack_range
+		and can_attack
+	):
+		ranged_attack()
 
 	move_enemy()
 
@@ -247,9 +249,13 @@ func update_gravity(delta):
 		var current_gravity = gravity
 
 		if juggle_gravity_timer > 0.0:
-			current_gravity *= juggle_gravity_multiplier
+			current_gravity *= (
+				juggle_gravity_multiplier
+			)
 
-		velocity.y -= current_gravity * delta
+		velocity.y -= (
+			current_gravity * delta
+		)
 
 
 func update_hit_timers(delta):
@@ -264,58 +270,93 @@ func update_hit_timers(delta):
 # MOVEMENT
 # =============================================================================
 
-func chase_player(delta):
-	var chase_direction = (
+func move_toward_player(delta):
+	var direction = (
 		Player.global_position
 		- global_position
 	)
 
-	chase_direction.y = 0.0
+	direction.y = 0.0
 
-	if chase_direction.length() > 0.01:
-		chase_direction = chase_direction.normalized()
+	if direction.length() > 0.01:
+		direction = direction.normalized()
 
-	var separation = get_enemy_separation()
-
-	var final_direction = (
-		chase_direction
-		+ separation * separation_strength
+	direction += (
+		get_separation()
+		* separation_strength
 	)
 
-	if final_direction.length() > 0.01:
-		final_direction = final_direction.normalized()
+	if direction.length() > 0.01:
+		direction = direction.normalized()
 
+	set_horizontal_velocity(
+		direction,
+		delta
+	)
+
+
+func move_away_from_player(delta):
+	var direction = (
+		global_position
+		- Player.global_position
+	)
+
+	direction.y = 0.0
+
+	if direction.length() > 0.01:
+		direction = direction.normalized()
+
+	direction += (
+		get_separation()
+		* separation_strength
+	)
+
+	if direction.length() > 0.01:
+		direction = direction.normalized()
+
+	set_horizontal_velocity(
+		direction,
+		delta
+	)
+
+
+func set_horizontal_velocity(
+	direction,
+	delta
+):
 	velocity.x = move_toward(
 		velocity.x,
-		final_direction.x * move_speed,
-		movement_acceleration * delta
+		direction.x * move_speed,
+		acceleration * delta
 	)
 
 	velocity.z = move_toward(
 		velocity.z,
-		final_direction.z * move_speed,
-		movement_acceleration * delta
+		direction.z * move_speed,
+		acceleration * delta
 	)
 
 
-func brake_horizontal(delta):
+func stop_horizontal(delta):
 	velocity.x = move_toward(
 		velocity.x,
 		0.0,
-		movement_acceleration * delta
+		acceleration * delta
 	)
 
 	velocity.z = move_toward(
 		velocity.z,
 		0.0,
-		movement_acceleration * delta
+		acceleration * delta
 	)
 
 
-func get_enemy_separation():
+func get_separation():
 	var separation = Vector3.ZERO
 
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in get_tree().get_nodes_in_group(
+		"enemies"
+	):
 		if enemy == self:
 			continue
 
@@ -404,17 +445,14 @@ func move_enemy():
 		)
 
 		if fall_distance > safe_fall_distance:
-			var damaging_distance = (
+			var fall_damage = (
 				fall_distance
 				- safe_fall_distance
-			)
+			) * fall_damage_per_unit
 
-			var fall_damage = (
-				damaging_distance
-				* fall_damage_per_unit
+			take_damage(
+				fall_damage
 			)
-
-			take_damage(fall_damage)
 
 		highest_air_position = global_position.y
 
@@ -423,10 +461,10 @@ func move_enemy():
 
 
 # =============================================================================
-# ATTACK CHOICE
+# RANGED ATTACK
 # =============================================================================
 
-func attack():
+func ranged_attack():
 	if (
 		attack_in_progress
 		or not can_attack
@@ -434,59 +472,71 @@ func attack():
 	):
 		return
 
-	var distance = global_position.distance_to(
-		Player.global_position
-	)
-
-	# Close = normal melee.
-	if distance <= attack_range:
-		melee_attack()
-
-	# Medium range = giant telegraphed cleave.
-	elif distance <= ranged_melee_range:
-		ranged_melee_attack()
-
-
-# =============================================================================
-# NORMAL MELEE
-# =============================================================================
-
-func melee_attack():
 	attack_in_progress = true
 	can_attack = false
 	attack_cancelled = false
 
-	hide_ranged_telegraph()
+	aim_telegraph.show()
 
-	attack_telegraph.show()
+	var elapsed = 0.0
 
-	await get_tree().create_timer(
-		attack_windup
-	).timeout
+	locked_shot_direction = (
+		get_direction_to_player()
+	)
 
-	if attack_cancelled:
-		finish_attack()
-		return
+	# ---------------------------------------------------------
+	# TELEGRAPH
+	# ---------------------------------------------------------
 
-	attack_telegraph.hide()
+	while elapsed < attack_windup:
+		if attack_cancelled:
+			finish_attack()
+			return
 
-	if is_instance_valid(Player):
-		var distance = global_position.distance_to(
-			Player.global_position
-		)
+		if not is_instance_valid(Player):
+			finish_attack()
+			return
 
-		if distance <= attack_range:
-			Player.take_damage(
-				attack_damage
+		# Follow Lucian during the first part.
+		if elapsed < tracking_time:
+			var direction = (
+				get_direction_to_player()
 			)
 
-	await get_tree().create_timer(
-		attack_recovery
-	).timeout
+			if direction != Vector3.ZERO:
+				locked_shot_direction = direction
+
+		# After tracking_time, the aim is committed.
+		var progress = clamp(
+			elapsed / attack_windup,
+			0.0,
+			1.0
+		)
+
+		update_aim_telegraph(
+			locked_shot_direction,
+			progress
+		)
+
+		await get_tree().physics_frame
+
+		elapsed += (
+			get_physics_process_delta_time()
+		)
+
+	# ---------------------------------------------------------
+	# FIRE
+	# ---------------------------------------------------------
 
 	if attack_cancelled:
 		finish_attack()
 		return
+
+	fire_projectile(
+		locked_shot_direction
+	)
+
+	hide_telegraph()
 
 	await get_tree().create_timer(
 		attack_cooldown
@@ -496,180 +546,61 @@ func melee_attack():
 
 
 # =============================================================================
-# RANGED MELEE
+# PROJECTILE SPAWN
 # =============================================================================
 
-func ranged_melee_attack():
-	attack_in_progress = true
-	can_attack = false
-	attack_cancelled = false
-
-	attack_telegraph.hide()
-
-	if not is_instance_valid(Player):
-		finish_attack()
-		return
-
-	ranged_attack_direction = direction_to_player()
-
-	if ranged_attack_direction == Vector3.ZERO:
-		ranged_attack_direction = -global_transform.basis.z
-
-	ranged_telegraph.show()
-
-	var elapsed = 0.0
-
-	# ---------------------------------------------------------
-	# WARNING PHASE
-	# ---------------------------------------------------------
-
-	while elapsed < ranged_melee_windup:
-		if attack_cancelled:
-			hide_ranged_telegraph()
-			finish_attack()
-			return
-
-		if not is_instance_valid(Player):
-			hide_ranged_telegraph()
-			finish_attack()
-			return
-
-		# During the first part of the warning,
-		# the attack follows Lucian.
-		if elapsed < ranged_melee_tracking_time:
-			var new_direction = direction_to_player()
-
-			if new_direction != Vector3.ZERO:
-				ranged_attack_direction = new_direction
-
-		# After tracking time ends, the lane is LOCKED.
-		var progress = clamp(
-			elapsed / ranged_melee_windup,
-			0.0,
-			1.0
+func fire_projectile(direction):
+	if projectile_scene == null:
+		push_warning(
+			"Ranged enemy has no projectile_scene assigned!"
 		)
 
-		update_ranged_telegraph(
-			ranged_attack_direction,
-			progress
-		)
-
-		await get_tree().physics_frame
-
-		elapsed += get_physics_process_delta_time()
-
-	if attack_cancelled:
-		hide_ranged_telegraph()
-		finish_attack()
 		return
 
-	# ---------------------------------------------------------
-	# STRIKE
-	# ---------------------------------------------------------
+	if direction.length() <= 0.01:
+		return
 
-	update_ranged_telegraph(
-		ranged_attack_direction,
-		1.0
+	var projectile = (
+		projectile_scene.instantiate()
 	)
 
-	perform_ranged_melee_hit(
-		ranged_attack_direction
+	get_tree().current_scene.add_child(
+		projectile
 	)
 
-	flash_ranged_telegraph()
-
-	await get_tree().create_timer(
-		ranged_melee_strike_flash
-	).timeout
-
-	hide_ranged_telegraph()
-
-	await get_tree().create_timer(
-		ranged_melee_recovery
-	).timeout
-
-	if attack_cancelled:
-		finish_attack()
-		return
-
-	await get_tree().create_timer(
-		ranged_melee_cooldown
-	).timeout
-
-	finish_attack()
-
-
-# =============================================================================
-# RANGED MELEE HIT DETECTION
-# =============================================================================
-
-func perform_ranged_melee_hit(direction):
-	if not is_instance_valid(Player):
-		return
-
-	var origin = global_position
-
-	var to_player = (
-		Player.global_position
-		- origin
+	var spawn_position = (
+		global_position
+		+ Vector3.UP * projectile_height
+		+ direction * projectile_forward_offset
 	)
 
-	# Distance forward along the slash.
-	var forward_distance = (
-		to_player.dot(direction)
+	projectile.global_position = (
+		spawn_position
 	)
 
-	# Player is behind enemy.
-	if forward_distance < 0.0:
-		return
-
-	# Player is beyond attack range.
-	if forward_distance > ranged_melee_range:
-		return
-
-	# Horizontal sideways distance from the slash line.
-	var horizontal_offset = (
-		to_player
-		- direction * forward_distance
-	)
-
-	horizontal_offset.y = 0.0
-
-	var side_distance = (
-		horizontal_offset.length()
-	)
-
-	if side_distance > ranged_melee_width * 0.5:
-		return
-
-	# Vertical danger volume.
-	var player_height = (
-		Player.global_position.y
-		- global_position.y
-	)
-
-	if player_height < -1.5:
-		return
-
-	if player_height > ranged_melee_height:
-		return
-
-	# Lucian is inside the warned area.
-	Player.take_damage(
-		ranged_melee_damage
+	projectile.direction = (
+		direction.normalized()
 	)
 
 
-func direction_to_player():
+func get_direction_to_player():
 	if not is_instance_valid(Player):
 		return Vector3.ZERO
 
-	var direction = (
+	var target_position = (
 		Player.global_position
-		- global_position
+		+ Vector3.UP * 1.0
 	)
 
-	direction.y = 0.0
+	var spawn_position = (
+		global_position
+		+ Vector3.UP * projectile_height
+	)
+
+	var direction = (
+		target_position
+		- spawn_position
+	)
 
 	if direction.length() <= 0.01:
 		return Vector3.ZERO
@@ -678,84 +609,88 @@ func direction_to_player():
 
 
 # =============================================================================
-# RANGED TELEGRAPH VISUAL
+# TELEGRAPH VISUAL
 # =============================================================================
 
-func create_ranged_melee_telegraph():
-	ranged_telegraph = MeshInstance3D.new()
-	ranged_telegraph.name = "RangedMeleeTelegraph"
+func create_aim_telegraph():
+	aim_telegraph = MeshInstance3D.new()
+
+	aim_telegraph.name = (
+		"ProjectileTelegraph"
+	)
 
 	var mesh = BoxMesh.new()
 
 	mesh.size = Vector3(
-		ranged_melee_width,
-		ranged_melee_height,
-		ranged_melee_range
+		telegraph_width,
+		telegraph_height,
+		telegraph_length
 	)
 
-	ranged_telegraph.mesh = mesh
+	aim_telegraph.mesh = mesh
 
-	ranged_telegraph_material = (
+	aim_material = (
 		StandardMaterial3D.new()
 	)
 
-	ranged_telegraph_material.transparency = (
+	aim_material.transparency = (
 		BaseMaterial3D.TRANSPARENCY_ALPHA
 	)
 
-	ranged_telegraph_material.shading_mode = (
+	aim_material.shading_mode = (
 		BaseMaterial3D.SHADING_MODE_UNSHADED
 	)
 
-	ranged_telegraph_material.albedo_color = Color(
+	aim_material.albedo_color = Color(
 		1.0,
 		0.05,
 		0.05,
-		0.18
+		0.20
 	)
 
-	ranged_telegraph_material.emission_enabled = true
-
-	ranged_telegraph_material.emission = Color(
+	aim_material.emission_enabled = true
+	aim_material.emission = Color(
 		1.0,
 		0.02,
 		0.02
 	)
 
-	ranged_telegraph_material.emission_energy_multiplier = 1.0
+	aim_material.emission_energy_multiplier = 1.0
 
-	ranged_telegraph.material_override = (
-		ranged_telegraph_material
+	aim_telegraph.material_override = (
+		aim_material
 	)
 
 	add_child(
-		ranged_telegraph
+		aim_telegraph
 	)
 
-	ranged_telegraph.hide()
+	aim_telegraph.hide()
 
 
-func update_ranged_telegraph(
+func update_aim_telegraph(
 	direction,
 	progress
 ):
-	if not is_instance_valid(ranged_telegraph):
+	if not is_instance_valid(
+		aim_telegraph
+	):
 		return
 
 	if direction.length() <= 0.01:
 		return
 
-	direction.y = 0.0
 	direction = direction.normalized()
 
-	# Put the warning volume halfway down the attack.
-	var center = (
+	var start = (
 		global_position
+		+ Vector3.UP * projectile_height
+	)
+
+	var center = (
+		start
 		+ direction
-		* ranged_melee_range
-		* 0.5
-		+ Vector3.UP
-		* ranged_melee_height
+		* telegraph_length
 		* 0.5
 	)
 
@@ -764,107 +699,83 @@ func update_ranged_telegraph(
 		Vector3.UP
 	)
 
-	ranged_telegraph.global_transform = Transform3D(
-		basis,
-		center
+	aim_telegraph.global_transform = (
+		Transform3D(
+			basis,
+			center
+		)
 	)
 
-	# Warning becomes brighter as impact approaches.
 	var alpha = lerp(
-		0.12,
+		0.15,
 		0.55,
 		progress
 	)
 
 	var energy = lerp(
-		0.8,
-		5.0,
+		1.0,
+		6.0,
 		progress
 	)
 
-	# Extra urgency during the final 20%.
+	# Fast pulse immediately before firing.
 	if progress > 0.80:
 		var pulse = (
 			sin(
 				Time.get_ticks_msec()
-				* 0.045
+				* 0.05
 			)
 			* 0.5
 			+ 0.5
 		)
 
 		alpha = lerp(
-			0.40,
-			0.75,
+			0.35,
+			0.80,
 			pulse
 		)
 
 		energy = lerp(
 			4.0,
-			8.0,
+			10.0,
 			pulse
 		)
 
-	ranged_telegraph_material.albedo_color = Color(
+	aim_material.albedo_color = Color(
 		1.0,
 		0.03,
 		0.03,
 		alpha
 	)
 
-	ranged_telegraph_material.emission_energy_multiplier = (
+	aim_material.emission_energy_multiplier = (
 		energy
 	)
 
 
-func flash_ranged_telegraph():
-	if not is_instance_valid(
-		ranged_telegraph_material
+func hide_telegraph():
+	if is_instance_valid(
+		aim_telegraph
 	):
-		return
-
-	ranged_telegraph_material.albedo_color = Color(
-		1.0,
-		0.9,
-		0.9,
-		0.9
-	)
-
-	ranged_telegraph_material.emission = Color.WHITE
-
-	ranged_telegraph_material.emission_energy_multiplier = 12.0
-
-
-func hide_ranged_telegraph():
-	if is_instance_valid(ranged_telegraph):
-		ranged_telegraph.hide()
-
-	if is_instance_valid(ranged_telegraph_material):
-		ranged_telegraph_material.emission = Color(
-			1.0,
-			0.02,
-			0.02
-		)
+		aim_telegraph.hide()
 
 
 # =============================================================================
-# ATTACK CLEANUP / CANCELLING
+# ATTACK CANCELLING
 # =============================================================================
-
-func finish_attack():
-	attack_telegraph.hide()
-	hide_ranged_telegraph()
-
-	attack_in_progress = false
-	attack_cancelled = false
-	can_attack = true
-
 
 func cancel_current_attack():
 	attack_cancelled = true
 
-	attack_telegraph.hide()
-	hide_ranged_telegraph()
+	hide_telegraph()
+
+
+func finish_attack():
+	hide_telegraph()
+
+	attack_in_progress = false
+	attack_cancelled = false
+	can_attack = true
 
 
 # =============================================================================
@@ -876,8 +787,6 @@ func _on_aggro_radius_body_entered(body):
 		Player = body
 		aggro = true
 
-		print("Player detected")
-
 
 # =============================================================================
 # DAMAGE
@@ -886,12 +795,12 @@ func _on_aggro_radius_body_entered(body):
 func take_damage(amount):
 	health -= amount
 
-	health_bar.set_health(
-		health,
-		max_health
-	)
+	if health_bar:
+		health_bar.set_health(
+			health,
+			max_health
+		)
 
-	# Getting hit instantly aggroes the enemy.
 	if Player == null:
 		var found_player = (
 			get_tree()
@@ -906,6 +815,7 @@ func take_damage(amount):
 		if found_player is CharacterBody3D:
 			Player = found_player
 			aggro = true
+
 	else:
 		aggro = true
 
@@ -959,7 +869,7 @@ func begin_finisher_setup(
 
 
 # =============================================================================
-# NORMAL HIT EFFECT
+# HIT EFFECT
 # =============================================================================
 
 func apply_hit_effect(
@@ -1038,7 +948,6 @@ func receive_finisher_hit(
 		incoming_finisher_id
 	]
 
-	# Final actual impact.
 	if current_hits >= total_hits:
 		apply_hit_effect(
 			hit_direction,
@@ -1052,7 +961,6 @@ func receive_finisher_hit(
 			incoming_finisher_id
 		)
 
-	# Normal juggle impact.
 	else:
 		apply_hit_effect(
 			hit_direction,
@@ -1068,7 +976,7 @@ func receive_finisher_hit(
 # =============================================================================
 
 func flash_red():
-	set_player_color(Color.RED)
+	set_enemy_color(Color.RED)
 
 	await get_tree().create_timer(
 		0.1
@@ -1078,10 +986,10 @@ func flash_red():
 
 
 func remove_flash():
-	set_player_color(Color.WHITE)
+	set_enemy_color(Color.WHITE)
 
 
-func set_player_color(color):
+func set_enemy_color(color):
 	for mesh in get_all_meshes(self):
 		if mesh.mesh == null:
 			continue
@@ -1131,7 +1039,5 @@ func get_all_meshes(node):
 
 func die():
 	cancel_current_attack()
-
-	print("Enemy died")
 
 	queue_free()

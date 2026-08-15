@@ -1,0 +1,24 @@
+[gd_scene format=3 uid="uid://deea1yn1dthnv"]
+
+[ext_resource type="Script" uid="uid://bsimxjwk8okf0" path="res://enemy_projectile.gd" id="1_ff34o"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_vpq67"]
+albedo_color = Color(1, 0, 0.18039216, 1)
+emission_enabled = true
+emission = Color(0.93333334, 0, 0, 1)
+emission_energy_multiplier = 5.04
+
+[sub_resource type="SphereMesh" id="SphereMesh_0hh2j"]
+material = SubResource("StandardMaterial3D_vpq67")
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_0hh2j"]
+
+[node name="EnemyProjectile" type="Area3D" unique_id=1466368669]
+collision_layer = 2
+script = ExtResource("1_ff34o")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=425789380]
+mesh = SubResource("SphereMesh_0hh2j")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=313935061]
+shape = SubResource("SphereShape3D_0hh2j")

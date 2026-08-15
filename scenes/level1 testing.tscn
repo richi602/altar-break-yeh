@@ -95,8 +95,8 @@ transform = Transform3D(5, 0, 0, 0, 5, 0, 0, 0, 5, -1.1380281, 0, -1.4048985)
 [node name="SpawnPoint" type="Marker3D" parent="EnemySpawner" unique_id=975716068]
 transform = Transform3D(10, 0, 0, 0, 10, 0, 0, 0, 10, 0, 0.956968, 0)
 
-[node name="Enemy" parent="EnemySpawner/SpawnPoint" unique_id=1721079208 groups=["enemies"] instance=ExtResource("12_eh4th")]
-transform = Transform3D(-0.017320508, 0, -0.010000001, 0, 0.02, 0, 0.010000001, 0, -0.017320508, 0.11844003, -0.075696796, -0.049599998)
+[node name="SpawnPoint2" type="Marker3D" parent="EnemySpawner" unique_id=351498524]
+transform = Transform3D(10, 0, 0, 0, 10, 0, 0, 0, 10, 0, 0.956968, 0)
 
 [node name="EnemySpawner" parent="EnemySpawner" unique_id=1702613038 instance=ExtResource("13_2ckd2")]
 transform = Transform3D(5, 0, 0, 0, 5, 0, 0, 0, 5, -0.0055618286, -0.11858101, -0.068362445)
