@@ -6,14 +6,14 @@
 [ext_resource type="PackedScene" path="res://scenes/HomingProjectile.tscn" id="3_qlg0r"]
 [ext_resource type="Texture2D" uid="uid://c3s0hkrjowfyc" path="res://textures/1941588-middle-removebg-preview.png" id="4_dqkch"]
 
-[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_5dpxp"]
-height = 4.5039063
-
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_0hh2j"]
 radius = 0.72314453
 height = 4.709841
 
 [sub_resource type="PlaceholderMesh" id="PlaceholderMesh_0hh2j"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_5dpxp"]
+height = 4.5039063
 
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_a2b8f"]
 _data = {
@@ -167,29 +167,32 @@ script = ExtResource("1_g2els")
 projectile_scene = ExtResource("2_qhqgy")
 homing_projectile_scene = ExtResource("3_qlg0r")
 
-[node name="ProjectileSpawn" type="Marker3D" parent="." unique_id=292014212]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, -3)
+[node name="CameraPivot" type="Node3D" parent="." unique_id=1876103022]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.3876696, 0)
+
+[node name="SpringArm3D" type="SpringArm3D" parent="CameraPivot" unique_id=1235161699]
+transform = Transform3D(0.1, 0, 0, 0, 0.1, 0, 0, 0, 0.1, 0, 1.6357841, -14.692043)
+spring_length = 5.0
+
+[node name="Camera3D" type="Camera3D" parent="CameraPivot/SpringArm3D" unique_id=2080161634]
+transform = Transform3D(-9.999701, 7.455017e-09, -0.077500425, -0.000115642615, 9.9999895, 0.014922069, 0.077500336, 0.014922507, -9.999689, 0.48285675, -54.241463, -213.98964)
+
+[node name="ProjectileSpawn" type="Marker3D" parent="CameraPivot/SpringArm3D" unique_id=292014212]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -39.513676, 141.86636)
+
+[node name="hurtbox" type="Area3D" parent="CameraPivot/SpringArm3D" unique_id=1556347773]
+transform = Transform3D(10, 0, 0, 0, 10, 0, 0, 0, 10, 0, -81.29374, 130.12268)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="CameraPivot/SpringArm3D/hurtbox" unique_id=1791769202]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.012102127, 2.4961977, 0.34979248)
+shape = SubResource("CapsuleShape3D_0hh2j")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="CameraPivot/SpringArm3D/hurtbox/CollisionShape3D" unique_id=2040675028]
+mesh = SubResource("PlaceholderMesh_0hh2j")
 
 [node name="CollisionShape3D2" type="CollisionShape3D" parent="." unique_id=180823415]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5326881, 0)
 shape = SubResource("CapsuleShape3D_5dpxp")
-
-[node name="SpringArm3D" type="SpringArm3D" parent="." unique_id=1235161699]
-transform = Transform3D(0.1, 0, 0, 0, 0.1, 0, 0, 0, 0.1, 0, 8.1293745, -14.020996)
-spring_length = 5.0
-
-[node name="Camera3D" type="Camera3D" parent="SpringArm3D" unique_id=2080161634]
-transform = Transform3D(-9.9997, 6.8748396e-10, -0.077500425, -0.041318208, 8.4603, 5.331193, 0.06556768, 5.3313537, -8.460046, 0.48285675, 28.482407, 66.81543)
-
-[node name="hurtbox" type="Area3D" parent="SpringArm3D" unique_id=1556347773]
-transform = Transform3D(10, 0, 0, 0, 10, 0, 0, 0, 10, 0, -81.29374, 130.12268)
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="SpringArm3D/hurtbox" unique_id=1791769202]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.012102127, 2.4961977, 0.34979248)
-shape = SubResource("CapsuleShape3D_0hh2j")
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="SpringArm3D/hurtbox/CollisionShape3D" unique_id=2040675028]
-mesh = SubResource("PlaceholderMesh_0hh2j")
 
 [node name="edgelord" type="Node3D" parent="." unique_id=1851007032]
 transform = Transform3D(0.059999175, 0, 0.00031415783, 0, 0.06, 0, -0.00031415783, 0, 0.059999175, 0, 2.389369, 0)
@@ -534,4 +537,4 @@ pivot_offset = Vector2(32, 32)
 texture = ExtResource("4_dqkch")
 expand_mode = 1
 
-[connection signal="body_entered" from="SpringArm3D/hurtbox" to="." method="_on_hurtbox_body_entered"]
+[connection signal="body_entered" from="CameraPivot/SpringArm3D/hurtbox" to="." method="_on_hurtbox_body_entered"]
