@@ -164,14 +164,18 @@ bind/36/pose = Transform3D(-1, 0, 0, 0, -1, 0, 0, 0, 1, 0.059945446, -0.30642462
 
 [node name="Player" type="CharacterBody3D" unique_id=126342862]
 script = ExtResource("1_g2els")
+camera_distance = 15.0
+camera_pivot_height = 3.0
 projectile_scene = ExtResource("2_qhqgy")
 homing_projectile_scene = ExtResource("3_qlg0r")
+projectile_spawn_height = 4.0
+projectile_spawn_forward = -5.0
 
 [node name="CameraPivot" type="Node3D" parent="." unique_id=1876103022]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.3876696, 0)
+transform = Transform3D(0.99950653, 0, 0.03141076, 0, 1, 0, -0.03141076, 0, 0.99950653, 0, 3.2797098, 1.4002786)
 
 [node name="SpringArm3D" type="SpringArm3D" parent="CameraPivot" unique_id=1235161699]
-transform = Transform3D(0.1, 0, 0, 0, 0.1, 0, 0, 0, 0.1, 0, 1.6357841, -14.692043)
+transform = Transform3D(0.10000001, 0, -2.3283064e-10, 0, 0.1, 0, 2.3283064e-10, 0, 0.10000001, 3.7252903e-09, 1.6357841, -14.692045)
 spring_length = 5.0
 
 [node name="Camera3D" type="Camera3D" parent="CameraPivot/SpringArm3D" unique_id=2080161634]

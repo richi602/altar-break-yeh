@@ -1,0 +1,21 @@
+[gd_scene format=3 uid="uid://qrff37bgaqdh"]
+
+[ext_resource type="Script" uid="uid://dk1pyumhlxnmq" path="res://scenes/Encounter_Scenes/reward_choice.gd" id="1_qky1f"]
+
+[sub_resource type="SphereMesh" id="SphereMesh_0hh2j"]
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_5dpxp"]
+
+[node name="RewardChoice" type="Area3D" unique_id=1829799662]
+script = ExtResource("1_qky1f")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=1814634865]
+mesh = SubResource("SphereMesh_0hh2j")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=12113871]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.0015403032, 0)
+shape = SubResource("SphereShape3D_5dpxp")
+
+[node name="Label3D" type="Label3D" parent="." unique_id=1679834980]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+pixel_size = 6.405

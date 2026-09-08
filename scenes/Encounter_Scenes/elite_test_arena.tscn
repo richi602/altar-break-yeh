@@ -1,0 +1,61 @@
+[gd_scene format=3 uid="uid://d1sy4dfheeb7u"]
+
+[ext_resource type="PackedScene" uid="uid://bk0gswpvkjyjx" path="res://scenes/player.tscn" id="1_player"]
+[ext_resource type="PackedScene" path="res://scenes/Encounter_Scenes/ashbound_ravager.tscn" id="2_elite"]
+
+[sub_resource type="ProceduralSkyMaterial" id="Sky_mat"]
+sky_top_color = Color(0.018, 0.012, 0.045, 1)
+sky_horizon_color = Color(0.28, 0.055, 0.035, 1)
+ground_bottom_color = Color(0.015, 0.012, 0.02, 1)
+ground_horizon_color = Color(0.16, 0.035, 0.025, 1)
+
+[sub_resource type="Sky" id="Sky"]
+sky_material = SubResource("Sky_mat")
+
+[sub_resource type="Environment" id="Environment"]
+background_mode = 2
+sky = SubResource("Sky")
+ambient_light_source = 3
+ambient_light_color = Color(0.35, 0.28, 0.4, 1)
+ambient_light_energy = 0.8
+glow_enabled = true
+
+[sub_resource type="StandardMaterial3D" id="Mat_floor"]
+albedo_color = Color(0.055, 0.06, 0.075, 1)
+metallic = 0.25
+roughness = 0.72
+
+[sub_resource type="BoxMesh" id="Mesh_floor"]
+material = SubResource("Mat_floor")
+size = Vector3(90, 1, 90)
+
+[sub_resource type="BoxShape3D" id="Shape_floor"]
+size = Vector3(90, 1, 90)
+
+[node name="EliteTestArena" type="Node3D" unique_id=6507746]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1946906891]
+environment = SubResource("Environment")
+
+[node name="KeyLight" type="DirectionalLight3D" parent="." unique_id=471058640]
+transform = Transform3D(0.8660254, 0.40957603, -0.28678823, 0, 0.57357645, 0.81915206, 0.5, -0.7094065, 0.49673176, 0, 0, 0)
+light_color = Color(1, 0.58, 0.38, 1)
+light_energy = 1.4
+shadow_enabled = true
+
+[node name="Floor" type="StaticBody3D" parent="." unique_id=1822765301]
+transform = Transform3D(5, 0, 0, 0, 5, 0, 0, 0, 5, 0, -0.5, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="Floor" unique_id=889449064]
+mesh = SubResource("Mesh_floor")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor" unique_id=331059027]
+shape = SubResource("Shape_floor")
+
+[node name="Player" parent="." unique_id=1327044022 instance=ExtResource("1_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 0)
+
+[node name="AshboundRavager" parent="." unique_id=1449875608 instance=ExtResource("2_elite")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.5, 0, 0)
+orbit_barrage_cooldown = 12.0
+initial_barrage_delay = 5.0

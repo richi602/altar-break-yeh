@@ -1,0 +1,20 @@
+[gd_scene format=3 uid="uid://cjo57wawo8ow6"]
+
+[ext_resource type="Script" uid="uid://dd1ors37l6aef" path="res://scenes/enemies/enemy_health_bar.gd" id="1_qap5u"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_5dpxp"]
+size = Vector3(1.4023438, 2.4536133, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_0hh2j"]
+size = Vector3(0.49874115, 3.911316, 1)
+
+[node name="EnemyHealthBar" type="Node3D" unique_id=1086649000]
+script = ExtResource("1_qap5u")
+
+[node name="Background" type="MeshInstance3D" parent="." unique_id=1596591011]
+transform = Transform3D(2.2, 0, 0, 0, 0.18, 0, 0, 0, 0.1, 0, 0, 0)
+mesh = SubResource("BoxMesh_5dpxp")
+
+[node name="Fill" type="MeshInstance3D" parent="." unique_id=721942342]
+transform = Transform3D(4.4, 0, 0, 0, 0.0324, 0, 0, 0, 0.010000001, 0, 0, 0.115199566)
+mesh = SubResource("BoxMesh_0hh2j")

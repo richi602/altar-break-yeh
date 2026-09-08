@@ -1,103 +1,145 @@
 [gd_scene format=3 uid="uid://x0skjdfp3miv"]
 
-[ext_resource type="Texture2D" uid="uid://7jf4ie70feyd" path="res://maps/Desert/red_sand_diff_4k.jpg" id="1_fswiq"]
-[ext_resource type="PackedScene" uid="uid://bk0gswpvkjyjx" path="res://scenes/player.tscn" id="2_2ckd2"]
-[ext_resource type="ArrayMesh" uid="uid://bucvpq4l3qgh6" path="res://maps/Desert/uploads_files_3835558_desert.obj" id="4_t72x3"]
-[ext_resource type="Texture2D" uid="uid://beagerowm1wva" path="res://maps/Desert/Structures/Free_temple_egypt/textures/egypt_011.jpg" id="7_mqt67"]
-[ext_resource type="ArrayMesh" uid="uid://3hpieoj4onve" path="res://maps/Desert/Structures/bridges/fREE_bridge/obj/objBridge.obj" id="8_4kwoi"]
-[ext_resource type="Script" uid="uid://2g3su7k75p0g" path="res://scenes/enemy_spawner.gd" id="11_g6kaf"]
-[ext_resource type="PackedScene" uid="uid://c127gir3bci6u" path="res://enemy.tscn" id="12_eh4th"]
-[ext_resource type="PackedScene" uid="uid://cxviyq43wm8hu" path="res://enemy_spawner.tscn" id="13_2ckd2"]
+[ext_resource type="Texture2D" uid="uid://7jf4ie70feyd" path="res://maps/Desert/red_sand_diff_4k.jpg" id="1_floor"]
+[ext_resource type="PackedScene" uid="uid://bk0gswpvkjyjx" path="res://scenes/player.tscn" id="2_player"]
+[ext_resource type="Script" uid="uid://b31iu8d57o3c" path="res://scenes/Encounter_Scenes/encounter_manager.gd" id="3_encounter"]
+[ext_resource type="Script" uid="uid://blmdicqh2nxm4" path="res://scenes/Encounter_Scenes/area_progression.gd" id="4_progression"]
+[ext_resource type="PackedScene" uid="uid://qrff37bgaqdh" path="res://scenes/Encounter_Scenes/reward_choice.tscn" id="5_reward"]
+[ext_resource type="PackedScene" uid="uid://uobqw0vosa37" path="res://scenes/Encounter_Scenes/sandstorm_gate.tscn" id="6_gate"]
+[ext_resource type="PackedScene" uid="uid://b3874usdsovjm" path="res://scenes/enemies/RangedEnemy.tscn" id="7_normal"]
+[ext_resource type="PackedScene" path="res://scenes/Encounter_Scenes/ashbound_ravager.tscn" id="8_elite"]
 
-[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_3lc0u"]
-sky_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
-ground_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
+[sub_resource type="ProceduralSkyMaterial" id="SkyMat"]
+sky_horizon_color = Color(0.662, 0.672, 0.687, 1)
+ground_horizon_color = Color(0.662, 0.672, 0.687, 1)
 
-[sub_resource type="Sky" id="Sky_7525o"]
-sky_material = SubResource("ProceduralSkyMaterial_3lc0u")
+[sub_resource type="Sky" id="Sky"]
+sky_material = SubResource("SkyMat")
 
-[sub_resource type="Environment" id="Environment_poy5y"]
+[sub_resource type="Environment" id="Environment"]
 background_mode = 2
-sky = SubResource("Sky_7525o")
+sky = SubResource("Sky")
 glow_enabled = true
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_3lc0u"]
-albedo_texture = ExtResource("1_fswiq")
+[sub_resource type="StandardMaterial3D" id="FloorMat"]
+albedo_texture = ExtResource("1_floor")
 uv1_triplanar = true
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_7525o"]
-albedo_texture = ExtResource("1_fswiq")
+[node name="Floor" type="Node3D" unique_id=598964177]
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_a2b8f"]
-albedo_texture = ExtResource("7_mqt67")
+[node name="Player" parent="." unique_id=1140451230 instance=ExtResource("2_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, -62)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_l7rxn"]
-size = Vector3(53.13611, 1.4731445, 5.380127)
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=303606695]
+environment = SubResource("Environment")
 
-[node name="Floor" type="Node3D" unique_id=860377737]
-
-[node name="Player" parent="." unique_id=126342862 instance=ExtResource("2_2ckd2")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.154673, 11.048212, -60.81992)
-
-[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1902653476]
-environment = SubResource("Environment_poy5y")
-
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=784620162]
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=518368077]
 transform = Transform3D(-0.8660254, -0.43301278, 0.25, 0, 0.49999997, 0.86602545, -0.50000006, 0.75, -0.43301266, 0, 0, 0)
+light_color = Color(1, 0.646, 0.617, 1)
 light_energy = 0.683
 shadow_enabled = true
 
-[node name="CSGBox3D" type="CSGBox3D" parent="." unique_id=97186226]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0144610405, 0.36164075, 0.012985945)
-material_override = SubResource("StandardMaterial3D_3lc0u")
+[node name="Ground" type="CSGBox3D" parent="." unique_id=1589046773]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.88, 85)
+material_override = SubResource("FloorMat")
 use_collision = true
-size = Vector3(1000, 1, 1000)
+size = Vector3(240, 1, 360)
 
-[node name="UploadsFiles3835558Desert" type="MeshInstance3D" parent="." unique_id=774847040]
-transform = Transform3D(10, 0, 0, 0, 10, 0, 0, 0, 10, -3.0597258, -4.051766, -5.502039)
-material_override = SubResource("StandardMaterial3D_7525o")
-mesh = ExtResource("4_t72x3")
+[node name="AreaProgression" type="Node" parent="." unique_id=739229361 node_paths=PackedStringArray("area_managers")]
+script = ExtResource("4_progression")
+area_managers = [NodePath("../Area1/EncounterManager"), NodePath("../Area2/EncounterManager"), NodePath("../Area3/EncounterManager")]
 
-[node name="ObjBridge" type="MeshInstance3D" parent="." unique_id=1276026308]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.5017624, 0.861639, -60.212986)
-material_override = SubResource("StandardMaterial3D_a2b8f")
-mesh = ExtResource("8_4kwoi")
+[node name="Area1" type="Node3D" parent="." unique_id=1637935029]
 
-[node name="StaticBody3D" type="StaticBody3D" parent="ObjBridge" unique_id=72713325]
+[node name="EncounterManager" type="Node" parent="Area1" unique_id=473527030 node_paths=PackedStringArray("spawn_points_root")]
+script = ExtResource("3_encounter")
+enemy_scene = ExtResource("7_normal")
+wave_enemy_counts = Array[int]([8])
+auto_start = false
+spawn_points_root = NodePath("../SpawnPoints")
+enable_kill_all_button = false
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="ObjBridge/StaticBody3D" unique_id=1034722636]
-transform = Transform3D(1, 0, 0, 0, 0.88730615, -0.46118084, 0, 0.46118084, 0.88730615, 0.1453247, 8.376172, 0.27038574)
-shape = SubResource("BoxShape3D_l7rxn")
+[node name="SpawnPoints" type="Node3D" parent="Area1" unique_id=839708697]
 
-[node name="ObjBridge2" type="MeshInstance3D" parent="." unique_id=449136436]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 59.2977, 0.861639, -60.212986)
-material_override = SubResource("StandardMaterial3D_a2b8f")
-mesh = ExtResource("8_4kwoi")
+[node name="Spawn1" type="Marker3D" parent="Area1/SpawnPoints" unique_id=1877323476]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22, 2, -25)
 
-[node name="StaticBody3D" type="StaticBody3D" parent="ObjBridge2" unique_id=1583879714]
+[node name="Spawn2" type="Marker3D" parent="Area1/SpawnPoints" unique_id=1491395350]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 2, -18)
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="ObjBridge2/StaticBody3D" unique_id=40330797]
-transform = Transform3D(1, 0, 0, 0, 0.88730615, -0.46118084, 0, 0.46118084, 0.88730615, 0.1453247, 8.376172, 0.27038574)
-shape = SubResource("BoxShape3D_l7rxn")
+[node name="Spawn3" type="Marker3D" parent="Area1/SpawnPoints" unique_id=741232428]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 2, 4)
 
-[node name="EnemySpawner" type="Node3D" parent="." unique_id=1566692964]
-transform = Transform3D(5, 0, 0, 0, 5, 0, 0, 0, 5, 41.078, 0.13263273, 2.48)
-script = ExtResource("11_g6kaf")
-enemy_scene = ExtResource("12_eh4th")
-respawn_time = 1.0
+[node name="Spawn4" type="Marker3D" parent="Area1/SpawnPoints" unique_id=2048028947]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, 2, 10)
 
-[node name="EnemySpawner2" parent="EnemySpawner" unique_id=463900158 instance=ExtResource("13_2ckd2")]
-transform = Transform3D(5, 0, 0, 0, 5, 0, 0, 0, 5, -1.1380281, 0, 0)
+[node name="GateToArea2" parent="Area1" unique_id=2078762473 node_paths=PackedStringArray("encounter_manager") instance=ExtResource("6_gate")]
+transform = Transform3D(2.6, 0, 0, 0, 1, 0, 0, 0, 1, 0, 7, 25)
+encounter_manager = NodePath("../EncounterManager")
 
-[node name="EnemySpawner3" parent="EnemySpawner" unique_id=656994253 instance=ExtResource("13_2ckd2")]
-transform = Transform3D(5, 0, 0, 0, 5, 0, 0, 0, 5, -1.1380281, 0, -1.4048985)
+[node name="Area2" type="Node3D" parent="." unique_id=1911086092]
 
-[node name="SpawnPoint" type="Marker3D" parent="EnemySpawner" unique_id=975716068]
-transform = Transform3D(10, 0, 0, 0, 10, 0, 0, 0, 10, 0, 0.956968, 0)
+[node name="EncounterManager" type="Node" parent="Area2" unique_id=1648506332 node_paths=PackedStringArray("spawn_points_root")]
+script = ExtResource("3_encounter")
+enemy_scene = ExtResource("7_normal")
+wave_enemy_counts = Array[int]([12])
+auto_start = false
+spawn_points_root = NodePath("../SpawnPoints")
+enable_kill_all_button = false
 
-[node name="SpawnPoint2" type="Marker3D" parent="EnemySpawner" unique_id=351498524]
-transform = Transform3D(10, 0, 0, 0, 10, 0, 0, 0, 10, 0, 0.956968, 0)
+[node name="SpawnPoints" type="Node3D" parent="Area2" unique_id=197842636]
 
-[node name="EnemySpawner" parent="EnemySpawner" unique_id=1702613038 instance=ExtResource("13_2ckd2")]
-transform = Transform3D(5, 0, 0, 0, 5, 0, 0, 0, 5, -0.0055618286, -0.11858101, -0.068362445)
-max_alive_enemies = 1
+[node name="Spawn1" type="Marker3D" parent="Area2/SpawnPoints" unique_id=222469597]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 2, 50)
+
+[node name="Spawn2" type="Marker3D" parent="Area2/SpawnPoints" unique_id=317754234]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 2, 55)
+
+[node name="Spawn3" type="Marker3D" parent="Area2/SpawnPoints" unique_id=656198455]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, 2, 78)
+
+[node name="Spawn4" type="Marker3D" parent="Area2/SpawnPoints" unique_id=1373830852]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22, 2, 84)
+
+[node name="Spawn5" type="Marker3D" parent="Area2/SpawnPoints" unique_id=665716211]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 92)
+
+[node name="GateToArea3" parent="Area2" unique_id=866507613 node_paths=PackedStringArray("encounter_manager") instance=ExtResource("6_gate")]
+transform = Transform3D(2.6, 0, 0, 0, 1, 0, 0, 0, 1, 0, 7, 112)
+encounter_manager = NodePath("../EncounterManager")
+
+[node name="Area3" type="Node3D" parent="." unique_id=1280189318]
+
+[node name="EncounterManager" type="Node" parent="Area3" unique_id=1004405087 node_paths=PackedStringArray("spawn_points_root", "reward_spawn_points_root")]
+script = ExtResource("3_encounter")
+encounter_kind = 1
+enemy_scene = ExtResource("7_normal")
+elite_enemy_scene = ExtResource("8_elite")
+wave_enemy_counts = Array[int]([1])
+auto_start = false
+spawn_points_root = NodePath("../SpawnPoints")
+reward_scene = ExtResource("5_reward")
+reward_spawn_points_root = NodePath("../RewardSpawnPoints")
+
+[node name="SpawnPoints" type="Node3D" parent="Area3" unique_id=1154652994]
+
+[node name="EliteSpawn" type="Marker3D" parent="Area3/SpawnPoints" unique_id=209188814]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 165)
+
+[node name="RewardSpawnPoints" type="Node3D" parent="Area3" unique_id=95287112]
+
+[node name="RewardLeft" type="Marker3D" parent="Area3/RewardSpawnPoints" unique_id=1425963970]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 2, 178)
+
+[node name="RewardMiddle" type="Marker3D" parent="Area3/RewardSpawnPoints" unique_id=432752914]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 180)
+
+[node name="RewardRight" type="Marker3D" parent="Area3/RewardSpawnPoints" unique_id=1213826690]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 2, 178)
+
+[node name="ExitGate" parent="Area3" unique_id=1651301730 node_paths=PackedStringArray("encounter_manager") instance=ExtResource("6_gate")]
+transform = Transform3D(2.6, 0, 0, 0, 1, 0, 0, 0, 1, 0, 7, 212)
+encounter_manager = NodePath("../EncounterManager")
+
+[node name="ExitSpawn" type="Marker3D" parent="." unique_id=173071934]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 232)

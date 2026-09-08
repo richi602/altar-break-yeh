@@ -1,0 +1,58 @@
+[gd_scene format=3 uid="uid://uobqw0vosa37"]
+
+[ext_resource type="Script" uid="uid://b5o4uff60jjbr" path="res://scenes/Encounter_Scenes/sandstorm_gate.gd" id="1_humwp"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_fbu0r"]
+size = Vector3(84, 20, 5)
+
+[sub_resource type="Gradient" id="Gradient_8cp33"]
+offsets = PackedFloat32Array(0, 0.25, 0.75, 1)
+colors = PackedColorArray(0.3, 0.3, 0.3, 0, 0.35, 0.35, 0.35, 0.7, 0.2, 0.2, 0.2, 0.5, 0.1, 0.1, 0.1, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_osycn"]
+gradient = SubResource("Gradient_8cp33")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_x7w5j"]
+emission_shape = 3
+emission_box_extents = Vector3(42, 10, 8)
+direction = Vector3(0, 1, 0)
+spread = 20.0
+initial_velocity_min = 5.0
+initial_velocity_max = 14.0
+gravity = Vector3(8, 1.5, 0)
+scale_min = 2.0
+scale_max = 6.0
+color_ramp = SubResource("GradientTexture1D_osycn")
+turbulence_enabled = true
+turbulence_noise_strength = 8.0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_t10j1"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+albedo_color = Color(0.7254902, 0.5411765, 0.33333334, 0.8)
+billboard_mode = 3
+billboard_keep_scale = true
+particles_anim_h_frames = 1
+particles_anim_v_frames = 1
+particles_anim_loop = false
+
+[sub_resource type="QuadMesh" id="QuadMesh_8g0wa"]
+material = SubResource("StandardMaterial3D_t10j1")
+size = Vector2(0.25, 0.25)
+
+[node name="SandstormGate" type="Node3D" unique_id=335627992]
+script = ExtResource("1_humwp")
+
+[node name="Blocker" type="StaticBody3D" parent="." unique_id=339250726]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Blocker" unique_id=222308286]
+shape = SubResource("BoxShape3D_fbu0r")
+
+[node name="StormParticles" type="GPUParticles3D" parent="." unique_id=1326568780]
+amount = 900
+lifetime = 5.0
+preprocess = 5.0
+randomness = 0.85
+process_material = SubResource("ParticleProcessMaterial_x7w5j")
+draw_pass_1 = SubResource("QuadMesh_8g0wa")
