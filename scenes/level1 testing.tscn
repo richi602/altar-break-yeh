@@ -1,0 +1,111 @@
+[gd_scene format=3 uid="uid://x0skjdfp3miv"]
+
+[ext_resource type="Texture2D" uid="uid://7jf4ie70feyd" path="res://maps/Desert/red_sand_diff_4k.jpg" id="1_fswiq"]
+[ext_resource type="PackedScene" uid="uid://bk0gswpvkjyjx" path="res://scenes/player.tscn" id="2_2ckd2"]
+[ext_resource type="Texture2D" uid="uid://c3s0hkrjowfyc" path="res://textures/1941588-middle-removebg-preview.png" id="3_iqilj"]
+[ext_resource type="ArrayMesh" uid="uid://bucvpq4l3qgh6" path="res://maps/Desert/uploads_files_3835558_desert.obj" id="4_t72x3"]
+[ext_resource type="Texture2D" uid="uid://beagerowm1wva" path="res://maps/Desert/Structures/Free_temple_egypt/textures/egypt_011.jpg" id="7_mqt67"]
+[ext_resource type="ArrayMesh" uid="uid://3hpieoj4onve" path="res://maps/Desert/Structures/bridges/fREE_bridge/obj/objBridge.obj" id="8_4kwoi"]
+[ext_resource type="Script" uid="uid://2g3su7k75p0g" path="res://scenes/enemy_spawner.gd" id="11_g6kaf"]
+[ext_resource type="PackedScene" uid="uid://c127gir3bci6u" path="res://enemy.tscn" id="12_eh4th"]
+[ext_resource type="PackedScene" uid="uid://cxviyq43wm8hu" path="res://enemy_spawner.tscn" id="13_2ckd2"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_3lc0u"]
+sky_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
+ground_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
+
+[sub_resource type="Sky" id="Sky_7525o"]
+sky_material = SubResource("ProceduralSkyMaterial_3lc0u")
+
+[sub_resource type="Environment" id="Environment_poy5y"]
+background_mode = 2
+sky = SubResource("Sky_7525o")
+glow_enabled = true
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_3lc0u"]
+albedo_texture = ExtResource("1_fswiq")
+uv1_triplanar = true
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_7525o"]
+albedo_texture = ExtResource("1_fswiq")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_a2b8f"]
+albedo_texture = ExtResource("7_mqt67")
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_l7rxn"]
+size = Vector3(53.13611, 1.4731445, 5.380127)
+
+[node name="Floor" type="Node3D" unique_id=860377737]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1902653476]
+environment = SubResource("Environment_poy5y")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=784620162]
+transform = Transform3D(-0.8660254, -0.43301278, 0.25, 0, 0.49999997, 0.86602545, -0.50000006, 0.75, -0.43301266, 0, 0, 0)
+light_energy = 0.683
+shadow_enabled = true
+
+[node name="CSGBox3D" type="CSGBox3D" parent="." unique_id=97186226]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0144610405, 0.36164075, 0.012985945)
+material_override = SubResource("StandardMaterial3D_3lc0u")
+use_collision = true
+size = Vector3(1000, 1, 1000)
+
+[node name="Player" parent="CSGBox3D" unique_id=126342862 instance=ExtResource("2_2ckd2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.844046, 9.754745, -60.522507)
+projectile_scene = null
+homing_projectile_scene = null
+
+[node name="CanvasLayer2" type="CanvasLayer" parent="CSGBox3D/Player" unique_id=2044522558]
+
+[node name="LockReticle" type="TextureRect" parent="CSGBox3D/Player/CanvasLayer2" unique_id=1595117521 groups=["lock_reticle"]]
+offset_left = 0.5
+offset_right = 64.5
+offset_bottom = 64.0
+pivot_offset = Vector2(32, 32)
+texture = ExtResource("3_iqilj")
+expand_mode = 1
+
+[node name="UploadsFiles3835558Desert" type="MeshInstance3D" parent="." unique_id=774847040]
+transform = Transform3D(10, 0, 0, 0, 10, 0, 0, 0, 10, -3.0597258, -4.051766, -5.502039)
+material_override = SubResource("StandardMaterial3D_7525o")
+mesh = ExtResource("4_t72x3")
+
+[node name="ObjBridge" type="MeshInstance3D" parent="." unique_id=1276026308]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.5017624, 0.861639, -60.212986)
+material_override = SubResource("StandardMaterial3D_a2b8f")
+mesh = ExtResource("8_4kwoi")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="ObjBridge" unique_id=72713325]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ObjBridge/StaticBody3D" unique_id=1034722636]
+transform = Transform3D(1, 0, 0, 0, 0.88730615, -0.46118084, 0, 0.46118084, 0.88730615, 0.1453247, 8.376172, 0.27038574)
+shape = SubResource("BoxShape3D_l7rxn")
+
+[node name="ObjBridge2" type="MeshInstance3D" parent="." unique_id=449136436]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 59.2977, 0.861639, -60.212986)
+material_override = SubResource("StandardMaterial3D_a2b8f")
+mesh = ExtResource("8_4kwoi")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="ObjBridge2" unique_id=1583879714]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ObjBridge2/StaticBody3D" unique_id=40330797]
+transform = Transform3D(1, 0, 0, 0, 0.88730615, -0.46118084, 0, 0.46118084, 0.88730615, 0.1453247, 8.376172, 0.27038574)
+shape = SubResource("BoxShape3D_l7rxn")
+
+[node name="EnemySpawner" type="Node3D" parent="." unique_id=1566692964]
+transform = Transform3D(5, 0, 0, 0, 5, 0, 0, 0, 5, 41.078, 0.13263273, 2.48)
+script = ExtResource("11_g6kaf")
+enemy_scene = ExtResource("12_eh4th")
+
+[node name="SpawnPoint" type="Marker3D" parent="EnemySpawner" unique_id=975716068]
+transform = Transform3D(10, 0, 0, 0, 10, 0, 0, 0, 10, 0, 0.956968, 0)
+
+[node name="Enemy" parent="EnemySpawner/SpawnPoint" unique_id=1721079208 groups=["enemies"] instance=ExtResource("12_eh4th")]
+transform = Transform3D(-0.017320508, 0, -0.010000001, 0, 0.02, 0, 0.010000001, 0, -0.017320508, 0.11844003, -0.075696796, -0.049599998)
+
+[node name="EnemySpawner" parent="EnemySpawner" unique_id=463900158 instance=ExtResource("13_2ckd2")]
+transform = Transform3D(5, 0, 0, 0, 5, 0, 0, 0, 5, -0.0055618286, -0.11858101, -0.068362445)
+
+[node name="EnemySpawner2" parent="EnemySpawner" unique_id=237416738 instance=ExtResource("13_2ckd2")]
+transform = Transform3D(5, 0, 0, 0, 5, 0, 0, 0, 5, -7.9030437, -0.11858101, -0.068362445)

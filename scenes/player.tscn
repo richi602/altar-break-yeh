@@ -1,8 +1,9 @@
 [gd_scene format=4 uid="uid://bk0gswpvkjyjx"]
 
 [ext_resource type="Script" uid="uid://dkhimx4yxkxo2" path="res://scenes/player.gd" id="1_g2els"]
-[ext_resource type="PackedScene" uid="uid://c83slrag17ug6" path="res://scenes/playerprojectile.tscn" id="2_qhqgy"]
+[ext_resource type="PackedScene" uid="uid://kl6meqvkrk2c" path="res://scenes/playerprojectile.tscn" id="2_qhqgy"]
 [ext_resource type="Animation" uid="uid://vesiuv4cne8x" path="res://models/richis sketch/edge_lord#0000/animations/run/rig_run.res" id="3_dqkch"]
+[ext_resource type="PackedScene" path="res://scenes/HomingProjectile.tscn" id="3_qlg0r"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_5dpxp"]
 height = 4.5039063
@@ -163,9 +164,10 @@ bind/36/pose = Transform3D(-1, 0, 0, 0, -1, 0, 0, 0, 1, 0.059945446, -0.30642462
 [node name="Player" type="CharacterBody3D" unique_id=126342862]
 script = ExtResource("1_g2els")
 projectile_scene = ExtResource("2_qhqgy")
+homing_projectile_scene = ExtResource("3_qlg0r")
 
 [node name="ProjectileSpawn" type="Marker3D" parent="." unique_id=292014212]
-transform = Transform3D(-5.9805417, 2.1104675e-08, 0.48281866, -2.8345713e-17, 6.0000014, -2.6226832e-07, -0.48281866, -2.6141774e-07, -5.9805417, 0, 3.67694, 11.630119)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, -3)
 
 [node name="CollisionShape3D2" type="CollisionShape3D" parent="." unique_id=180823415]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5326881, 0)
@@ -513,5 +515,14 @@ bones/43/scale = Vector3(1, 1, 1)
 mesh = SubResource("ArrayMesh_xkbv7")
 skin = SubResource("Skin_qf32v")
 skeleton = NodePath("..")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=1201061798]
+
+[node name="HealthBar" type="ProgressBar" parent="CanvasLayer" unique_id=1072653545]
+offset_left = 676.0
+offset_top = 595.0
+offset_right = 1151.0
+offset_bottom = 645.0
+value = 100.0
 
 [connection signal="body_entered" from="SpringArm3D/hurtbox" to="." method="_on_hurtbox_body_entered"]
