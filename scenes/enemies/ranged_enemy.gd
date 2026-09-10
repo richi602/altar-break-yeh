@@ -14,22 +14,22 @@ extends CharacterBody3D
 
 @export_category("Movement")
 
-@export var move_speed = 18.0
+@export var move_speed = 28.0
 @export var gravity = 20.0
-@export var turn_speed = 8.0
-@export var acceleration = 45.0
-@export var strafe_speed = 15.0
-@export var strafe_switch_min = 1.1
-@export var strafe_switch_max = 2.7
+@export var turn_speed = 13.0
+@export var acceleration = 76.0
+@export var strafe_speed = 24.0
+@export var strafe_switch_min = 0.55
+@export var strafe_switch_max = 1.35
 
 # The ranged enemy tries to stay around this distance.
-@export var preferred_distance = 16.0
+@export var preferred_distance = 14.0
 
 # Too close = back away.
-@export var retreat_distance = 9.0
+@export var retreat_distance = 7.0
 
 # Too far = chase.
-@export var chase_distance = 24.0
+@export var chase_distance = 32.0
 
 
 # =============================================================================
@@ -51,13 +51,13 @@ extends CharacterBody3D
 @export var projectile_scene: PackedScene
 
 @export var attack_range = 30.0
-@export var attack_cooldown = 1.4
+@export var attack_cooldown = 0.85
 
 # Total warning duration.
-@export var attack_windup = 0.9
+@export var attack_windup = 0.62
 
 # Warning follows Lucian for this amount of time.
-@export var tracking_time = 0.50
+@export var tracking_time = 0.32
 
 # Projectile spawn position.
 @export var projectile_height = 1.5
@@ -68,8 +68,8 @@ extends CharacterBody3D
 @export var telegraph_width = 0.35
 @export var telegraph_height = 0.35
 @export var prediction_seconds: float = 0.32
-@export var decision_pause_min: float = 0.22
-@export var decision_pause_max: float = 0.55
+@export var decision_pause_min: float = 0.08
+@export var decision_pause_max: float = 0.24
 @export var warning_sound: AudioStream = preload("res://assets/audio/enemies/robot_land.wav")
 @export var fire_sound: AudioStream = preload("res://assets/audio/enemies/robot_jump.wav")
 
@@ -110,6 +110,9 @@ var aim_material: StandardMaterial3D
 @export var ally_reaction_stagger: float = 0.25
 @export var death_ragdoll_time: float = 1.4
 @export var ragdoll_collision_stagger: float = 0.22
+@export var aerial_spin_knockback_threshold: float = 35.0
+@export var aerial_spin_launch_threshold: float = 10.0
+@export var aerial_spin_speed: Vector3 = Vector3(19.0, 25.0, 17.0)
 
 var stun_timer = 0.0
 var knockback_timer = 0.0
@@ -117,6 +120,9 @@ var heavy_hit_count := 0
 var heavy_hit_timer := 0.0
 var dying := false
 var ragdoll_hit_ids: Dictionary = {}
+var aerial_spin_active := false
+var aerial_spin_direction := Vector3.ONE
+var visual_base_rotation := Vector3.ZERO
 
 
 # =============================================================================
@@ -150,7 +156,7 @@ var highest_air_position = 0.0
 
 @export_category("Health")
 
-@export var max_health: float = 80.0
+@export var max_health: float = 95.0
 
 var health: float
 
@@ -172,6 +178,9 @@ var aggro = false
 # =============================================================================
 
 func _ready():
+	var visual := get_node_or_null("CollisionShape3D/MeshInstance3D") as Node3D
+	if visual:
+		visual_base_rotation = visual.rotation
 	add_to_group("enemies")
 
 	health = max_health
@@ -199,6 +208,7 @@ func _ready():
 # =============================================================================
 
 func _physics_process(delta):
+	update_aerial_spin(delta)
 	if dying:
 		update_gravity(delta)
 		velocity.x = move_toward(velocity.x, 0.0, 4.0 * delta)
@@ -387,19 +397,19 @@ func strafe_around_player(delta):
 func configure_combat_role():
 	match combat_role:
 		0: # Flanker: wide, fast orbit and quick single shots.
-			preferred_distance = 19.0
-			attack_cooldown = 1.0
-			attack_windup = 0.68
+			preferred_distance = 16.0
+			attack_cooldown = 0.58
+			attack_windup = 0.44
 		1: # Suppressor: holds the back line and fires a broad pair.
-			preferred_distance = 24.0
-			retreat_distance = 13.0
-			attack_cooldown = 1.65
-			attack_windup = 0.95
+			preferred_distance = 21.0
+			retreat_distance = 10.0
+			attack_cooldown = 0.98
+			attack_windup = 0.72
 		2: # Hunter: closes distance and commits to a rapid burst.
-			preferred_distance = 12.0
-			chase_distance = 19.0
-			attack_cooldown = 1.35
-			attack_windup = 0.78
+			preferred_distance = 10.0
+			chase_distance = 28.0
+			attack_cooldown = 0.72
+			attack_windup = 0.52
 
 
 func set_horizontal_velocity(
@@ -667,7 +677,7 @@ func fire_projectile(direction):
 		direction.normalized()
 	)
 	if "damage" in projectile:
-		projectile.damage = 16.0 if combat_role == 0 else (14.0 if combat_role == 1 else 12.0)
+		projectile.damage = 34.0 if combat_role == 0 else (28.0 if combat_role == 1 else 26.0)
 	if "speed" in projectile:
 		projectile.speed = 68.0 if combat_role == 0 else (52.0 if combat_role == 1 else 62.0)
 
@@ -1043,6 +1053,9 @@ func apply_hit_effect(
 	)
 
 	velocity.y = launch_force
+	if knockback_strength >= aerial_spin_knockback_threshold or launch_force >= aerial_spin_launch_threshold:
+		aerial_spin_active = true
+		aerial_spin_direction = Vector3(1.0 if randf() > 0.5 else -1.0, 1.0 if randf() > 0.5 else -1.0, 1.0 if randf() > 0.5 else -1.0)
 
 	knockback_timer = knockback_duration
 	if knockback_strength >= 12.0 or launch_force >= 5.0:
@@ -1055,7 +1068,20 @@ func play_directional_hit_reaction(hit_direction: Vector3, strength: float, laun
 	if visual:
 		var tween := create_tween()
 		tween.tween_property(visual, "rotation", target_tilt, hit_stop_seconds)
-		tween.tween_property(visual, "rotation", Vector3.ZERO, 0.14)
+		tween.tween_property(visual, "rotation", visual_base_rotation, 0.14)
+
+func update_aerial_spin(delta: float) -> void:
+	if not aerial_spin_active:
+		return
+	var visual := get_node_or_null("CollisionShape3D/MeshInstance3D") as Node3D
+	if not visual:
+		aerial_spin_active = false
+		return
+	if is_on_floor() and velocity.y <= 0.0:
+		aerial_spin_active = false
+		visual.rotation = visual_base_rotation
+		return
+	visual.rotation += aerial_spin_speed * aerial_spin_direction * delta
 
 func spawn_hit_impact() -> void:
 	var flash := OmniLight3D.new()
@@ -1215,6 +1241,9 @@ func die():
 	if dying:
 		return
 	dying = true
+	for player in get_tree().get_nodes_in_group("players"):
+		if player.has_method("on_enemy_killed"):
+			player.on_enemy_killed()
 	cancel_current_attack()
 	get_node("/root/EnemyCombatDirector").notify_ally_disrupted(self, velocity)
 	set_collision_layer_value(1, false)

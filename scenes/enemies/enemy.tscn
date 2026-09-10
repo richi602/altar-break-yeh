@@ -29,7 +29,8 @@ transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 2, 0)
 shape = SubResource("CapsuleShape3D_midqa")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="CollisionShape3D" unique_id=2033151638]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, 0)
+position = Vector3(0, -1, 0)
+rotation = Vector3(0, 3.141593, 0)
 mesh = ExtResource("1_7k104")
 
 [node name="Hurtbox" type="Area3D" parent="CollisionShape3D" unique_id=2025726919]

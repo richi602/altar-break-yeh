@@ -46,7 +46,7 @@ extends Area3D
 
 @export var juggle_stun_time = 0.18
 @export var juggle_knockback = 3.0
-@export var juggle_launch_force = 12.0
+@export var juggle_launch_force = 4.5
 
 
 # =========================
@@ -55,7 +55,7 @@ extends Area3D
 
 @export var final_stun_time = 0.30
 @export var final_knockback = 45.0
-@export var final_launch_force = 20.0
+@export var final_launch_force = 8.0
 
 
 # =========================
@@ -117,6 +117,7 @@ var orbit_count = 8
 # =========================
 
 func _ready():
+	add_to_group("player_projectiles")
 
 	scale = Vector3.ONE * projectile_size
 

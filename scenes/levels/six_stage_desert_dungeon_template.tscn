@@ -1,0 +1,323 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="1_player"]
+[ext_resource type="Script" path="res://scenes/Encounter_Scenes/encounter_manager.gd" id="2_encounter"]
+[ext_resource type="Script" path="res://scenes/Encounter_Scenes/area_progression.gd" id="3_progression"]
+[ext_resource type="PackedScene" path="res://scenes/Encounter_Scenes/sandstorm_gate.tscn" id="4_gate"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/enemy.tscn" id="5_melee"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/RangedEnemy.tscn" id="6_ranged"]
+[ext_resource type="PackedScene" path="res://scenes/Encounter_Scenes/ashbound_ravager.tscn" id="7_elite"]
+[ext_resource type="PackedScene" path="res://scenes/Encounter_Scenes/reward_choice.tscn" id="8_reward"]
+
+[sub_resource type="StandardMaterial3D" id="DesertMat"]
+albedo_color = Color(0.62, 0.31, 0.12, 1)
+roughness = 0.92
+
+[sub_resource type="StandardMaterial3D" id="OasisMat"]
+albedo_color = Color(0.18, 0.42, 0.22, 1)
+roughness = 0.82
+
+[sub_resource type="StandardMaterial3D" id="WaterMat"]
+transparency = 1
+albedo_color = Color(0.05, 0.58, 0.76, 0.72)
+metallic = 0.25
+roughness = 0.12
+
+[sub_resource type="StandardMaterial3D" id="DungeonMat"]
+albedo_color = Color(0.105, 0.085, 0.13, 1)
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="ElectricMat"]
+albedo_color = Color(0.22, 0.68, 1, 1)
+emission_enabled = true
+emission = Color(0.16, 0.52, 1, 1)
+emission_energy_multiplier = 4.0
+
+[sub_resource type="ProceduralSkyMaterial" id="DesertSkyMat"]
+sky_top_color = Color(0.18, 0.28, 0.46, 1)
+sky_horizon_color = Color(0.95, 0.52, 0.24, 1)
+ground_bottom_color = Color(0.08, 0.045, 0.06, 1)
+ground_horizon_color = Color(0.72, 0.31, 0.16, 1)
+
+[sub_resource type="Sky" id="DesertSky"]
+sky_material = SubResource("DesertSkyMat")
+
+[sub_resource type="Environment" id="LevelEnvironment"]
+background_mode = 2
+sky = SubResource("DesertSky")
+ambient_light_source = 3
+ambient_light_color = Color(0.48, 0.39, 0.46, 1)
+ambient_light_energy = 0.72
+glow_enabled = true
+
+[node name="SixStageDesertDungeonTemplate" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("LevelEnvironment")
+
+[node name="DesertSun" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-0.9, -0.55, 0)
+light_color = Color(1, 0.67, 0.48, 1)
+light_energy = 1.35
+shadow_enabled = true
+
+[node name="Player" parent="." instance=ExtResource("1_player")]
+position = Vector3(0, 2, -185)
+
+[node name="AreaProgression" type="Node" parent="." node_paths=PackedStringArray("area_managers")]
+script = ExtResource("3_progression")
+area_managers = [NodePath("../Stage1_OpenDesert/EncounterManager"), NodePath("../Stage2_OasisDescent/EncounterManager"), NodePath("../Stage3_BuriedThreshold/EncounterManager"), NodePath("../Stage4_StormGallery/EncounterManager"), NodePath("../Stage5_DeepReliquary/EncounterManager"), NodePath("../Stage6_BossSanctum/EncounterManager")]
+
+[node name="Stage1_OpenDesert" type="Node3D" parent="."]
+[node name="Floor" type="CSGBox3D" parent="Stage1_OpenDesert"]
+position = Vector3(0, 0, -125)
+size = Vector3(260, 1, 150)
+use_collision = true
+material_override = SubResource("DesertMat")
+[node name="EncounterManager" type="Node" parent="Stage1_OpenDesert" node_paths=PackedStringArray("spawn_points_root")]
+script = ExtResource("2_encounter")
+enemy_scene = ExtResource("5_melee")
+enemy_scenes = Array[PackedScene]([ExtResource("5_melee"), ExtResource("6_ranged")])
+wave_enemy_counts = Array[int]([42, 56])
+auto_start = false
+spawn_points_root = NodePath("../SpawnPoints")
+max_simultaneous_enemies = 22
+[node name="SpawnPoints" type="Node3D" parent="Stage1_OpenDesert"]
+[node name="West" type="Marker3D" parent="Stage1_OpenDesert/SpawnPoints"]
+position = Vector3(-60, 2, -135)
+[node name="East" type="Marker3D" parent="Stage1_OpenDesert/SpawnPoints"]
+position = Vector3(60, 2, -125)
+[node name="NorthWest" type="Marker3D" parent="Stage1_OpenDesert/SpawnPoints"]
+position = Vector3(-38, 2, -78)
+[node name="NorthEast" type="Marker3D" parent="Stage1_OpenDesert/SpawnPoints"]
+position = Vector3(42, 2, -72)
+[node name="South" type="Marker3D" parent="Stage1_OpenDesert/SpawnPoints"]
+position = Vector3(0, 2, -175)
+[node name="GateToOasis" parent="Stage1_OpenDesert" node_paths=PackedStringArray("encounter_manager") instance=ExtResource("4_gate")]
+position = Vector3(0, 7, -45)
+scale = Vector3(4, 1, 1)
+encounter_manager = NodePath("../EncounterManager")
+visual_blend_depth = 28.0
+storm_color = Color(0.78, 0.48, 0.22, 0.72)
+storm_core_color = Color(0.34, 0.2, 0.12, 0.58)
+
+[node name="Stage2_OasisDescent" type="Node3D" parent="."]
+[node name="OasisGround" type="CSGCylinder3D" parent="Stage2_OasisDescent"]
+position = Vector3(0, 0, 18)
+radius = 72.0
+height = 1.0
+sides = 48
+use_collision = true
+material_override = SubResource("OasisMat")
+[node name="Water" type="CSGCylinder3D" parent="Stage2_OasisDescent"]
+position = Vector3(0, 0.55, 18)
+radius = 43.0
+height = 0.25
+sides = 48
+material_override = SubResource("WaterMat")
+[node name="StairIsland" type="CSGCylinder3D" parent="Stage2_OasisDescent"]
+position = Vector3(0, 0.7, 18)
+radius = 15.0
+height = 1.5
+sides = 24
+use_collision = true
+material_override = SubResource("DesertMat")
+[node name="EncounterManager" type="Node" parent="Stage2_OasisDescent" node_paths=PackedStringArray("spawn_points_root", "reward_spawn_points_root")]
+script = ExtResource("2_encounter")
+encounter_kind = 1
+enemy_scene = ExtResource("5_melee")
+enemy_scenes = Array[PackedScene]([ExtResource("5_melee"), ExtResource("6_ranged")])
+elite_enemy_scene = ExtResource("7_elite")
+wave_enemy_counts = Array[int]([48, 1])
+auto_start = false
+spawn_points_root = NodePath("../SpawnPoints")
+max_simultaneous_enemies = 24
+reward_scene = ExtResource("8_reward")
+reward_spawn_points_root = NodePath("../RewardSpawnPoints")
+reward_theme = 1
+[node name="SpawnPoints" type="Node3D" parent="Stage2_OasisDescent"]
+[node name="West" type="Marker3D" parent="Stage2_OasisDescent/SpawnPoints"]
+position = Vector3(-48, 2, 18)
+[node name="East" type="Marker3D" parent="Stage2_OasisDescent/SpawnPoints"]
+position = Vector3(48, 2, 18)
+[node name="North" type="Marker3D" parent="Stage2_OasisDescent/SpawnPoints"]
+position = Vector3(0, 2, 62)
+[node name="South" type="Marker3D" parent="Stage2_OasisDescent/SpawnPoints"]
+position = Vector3(0, 2, -24)
+[node name="RewardSpawnPoints" type="Node3D" parent="Stage2_OasisDescent"]
+[node name="Left" type="Marker3D" parent="Stage2_OasisDescent/RewardSpawnPoints"]
+position = Vector3(-8, 2, 18)
+[node name="Middle" type="Marker3D" parent="Stage2_OasisDescent/RewardSpawnPoints"]
+position = Vector3(0, 2, 18)
+[node name="Right" type="Marker3D" parent="Stage2_OasisDescent/RewardSpawnPoints"]
+position = Vector3(8, 2, 18)
+
+[node name="CentralStaircase" type="Node3D" parent="Stage2_OasisDescent"]
+[node name="Step1" type="CSGBox3D" parent="Stage2_OasisDescent/CentralStaircase"]
+position = Vector3(0, 0, 32)
+size = Vector3(12, 1, 4)
+use_collision = true
+material_override = SubResource("DungeonMat")
+[node name="Step2" type="CSGBox3D" parent="Stage2_OasisDescent/CentralStaircase"]
+position = Vector3(0, -2, 36)
+size = Vector3(12, 1, 4)
+use_collision = true
+material_override = SubResource("DungeonMat")
+[node name="Step3" type="CSGBox3D" parent="Stage2_OasisDescent/CentralStaircase"]
+position = Vector3(0, -4, 40)
+size = Vector3(12, 1, 4)
+use_collision = true
+material_override = SubResource("DungeonMat")
+[node name="Step4" type="CSGBox3D" parent="Stage2_OasisDescent/CentralStaircase"]
+position = Vector3(0, -6, 44)
+size = Vector3(12, 1, 4)
+use_collision = true
+material_override = SubResource("DungeonMat")
+[node name="Step5" type="CSGBox3D" parent="Stage2_OasisDescent/CentralStaircase"]
+position = Vector3(0, -8, 48)
+size = Vector3(12, 1, 4)
+use_collision = true
+material_override = SubResource("DungeonMat")
+[node name="GateToDungeon" parent="Stage2_OasisDescent" node_paths=PackedStringArray("encounter_manager") instance=ExtResource("4_gate")]
+position = Vector3(0, -1, 31)
+scale = Vector3(1.8, 1, 1)
+encounter_manager = NodePath("../EncounterManager")
+visual_blend_depth = 22.0
+storm_color = Color(0.16, 0.48, 0.48, 0.68)
+storm_core_color = Color(0.08, 0.17, 0.2, 0.7)
+density_multiplier = 0.75
+
+[node name="DungeonShell" type="Node3D" parent="."]
+[node name="MainFloor" type="CSGBox3D" parent="DungeonShell"]
+position = Vector3(0, -9, 220)
+size = Vector3(150, 1, 340)
+use_collision = true
+material_override = SubResource("DungeonMat")
+[node name="LeftWall" type="CSGBox3D" parent="DungeonShell"]
+position = Vector3(-75, 3, 220)
+size = Vector3(2, 25, 340)
+use_collision = true
+material_override = SubResource("DungeonMat")
+[node name="RightWall" type="CSGBox3D" parent="DungeonShell"]
+position = Vector3(75, 3, 220)
+size = Vector3(2, 25, 340)
+use_collision = true
+material_override = SubResource("DungeonMat")
+
+[node name="Stage3_BuriedThreshold" type="Node3D" parent="."]
+[node name="EncounterManager" type="Node" parent="Stage3_BuriedThreshold" node_paths=PackedStringArray("spawn_points_root")]
+script = ExtResource("2_encounter")
+enemy_scene = ExtResource("5_melee")
+enemy_scenes = Array[PackedScene]([ExtResource("5_melee"), ExtResource("6_ranged")])
+wave_enemy_counts = Array[int]([52, 64])
+auto_start = false
+spawn_points_root = NodePath("../SpawnPoints")
+max_simultaneous_enemies = 24
+[node name="SpawnPoints" type="Node3D" parent="Stage3_BuriedThreshold"]
+[node name="A" type="Marker3D" parent="Stage3_BuriedThreshold/SpawnPoints"]
+position = Vector3(-45, -7, 92)
+[node name="B" type="Marker3D" parent="Stage3_BuriedThreshold/SpawnPoints"]
+position = Vector3(45, -7, 104)
+[node name="C" type="Marker3D" parent="Stage3_BuriedThreshold/SpawnPoints"]
+position = Vector3(-30, -7, 142)
+[node name="D" type="Marker3D" parent="Stage3_BuriedThreshold/SpawnPoints"]
+position = Vector3(32, -7, 150)
+[node name="GateToGallery" parent="Stage3_BuriedThreshold" node_paths=PackedStringArray("encounter_manager") instance=ExtResource("4_gate")]
+position = Vector3(0, -2, 164)
+scale = Vector3(3, 1, 1)
+encounter_manager = NodePath("../EncounterManager")
+visual_blend_depth = 18.0
+storm_color = Color(0.25, 0.16, 0.34, 0.7)
+storm_core_color = Color(0.08, 0.06, 0.13, 0.76)
+
+[node name="Stage4_StormGallery" type="Node3D" parent="."]
+[node name="ElectricObelisk" type="CSGBox3D" parent="Stage4_StormGallery"]
+position = Vector3(0, -2, 205)
+size = Vector3(5, 14, 5)
+material_override = SubResource("ElectricMat")
+[node name="EncounterManager" type="Node" parent="Stage4_StormGallery" node_paths=PackedStringArray("spawn_points_root", "reward_spawn_points_root")]
+script = ExtResource("2_encounter")
+encounter_kind = 1
+enemy_scene = ExtResource("6_ranged")
+enemy_scenes = Array[PackedScene]([ExtResource("6_ranged"), ExtResource("5_melee")])
+elite_enemy_scene = ExtResource("7_elite")
+wave_enemy_counts = Array[int]([68, 1])
+auto_start = false
+spawn_points_root = NodePath("../SpawnPoints")
+max_simultaneous_enemies = 26
+reward_scene = ExtResource("8_reward")
+reward_spawn_points_root = NodePath("../RewardSpawnPoints")
+reward_theme = 1
+[node name="SpawnPoints" type="Node3D" parent="Stage4_StormGallery"]
+[node name="A" type="Marker3D" parent="Stage4_StormGallery/SpawnPoints"]
+position = Vector3(-52, -7, 182)
+[node name="B" type="Marker3D" parent="Stage4_StormGallery/SpawnPoints"]
+position = Vector3(52, -7, 190)
+[node name="C" type="Marker3D" parent="Stage4_StormGallery/SpawnPoints"]
+position = Vector3(-45, -7, 234)
+[node name="D" type="Marker3D" parent="Stage4_StormGallery/SpawnPoints"]
+position = Vector3(45, -7, 242)
+[node name="RewardSpawnPoints" type="Node3D" parent="Stage4_StormGallery"]
+[node name="Left" type="Marker3D" parent="Stage4_StormGallery/RewardSpawnPoints"]
+position = Vector3(-8, -7, 205)
+[node name="Middle" type="Marker3D" parent="Stage4_StormGallery/RewardSpawnPoints"]
+position = Vector3(0, -7, 205)
+[node name="Right" type="Marker3D" parent="Stage4_StormGallery/RewardSpawnPoints"]
+position = Vector3(8, -7, 205)
+[node name="GateToReliquary" parent="Stage4_StormGallery" node_paths=PackedStringArray("encounter_manager") instance=ExtResource("4_gate")]
+position = Vector3(0, -2, 258)
+scale = Vector3(3, 1, 1)
+encounter_manager = NodePath("../EncounterManager")
+visual_blend_depth = 24.0
+storm_color = Color(0.18, 0.55, 1, 0.74)
+storm_core_color = Color(0.1, 0.16, 0.42, 0.7)
+turbulence_strength = 12.0
+
+[node name="Stage5_DeepReliquary" type="Node3D" parent="."]
+[node name="EncounterManager" type="Node" parent="Stage5_DeepReliquary" node_paths=PackedStringArray("spawn_points_root")]
+script = ExtResource("2_encounter")
+enemy_scene = ExtResource("5_melee")
+enemy_scenes = Array[PackedScene]([ExtResource("5_melee"), ExtResource("6_ranged")])
+wave_enemy_counts = Array[int]([72, 84])
+auto_start = false
+spawn_points_root = NodePath("../SpawnPoints")
+max_simultaneous_enemies = 28
+[node name="SpawnPoints" type="Node3D" parent="Stage5_DeepReliquary"]
+[node name="A" type="Marker3D" parent="Stage5_DeepReliquary/SpawnPoints"]
+position = Vector3(-52, -7, 278)
+[node name="B" type="Marker3D" parent="Stage5_DeepReliquary/SpawnPoints"]
+position = Vector3(52, -7, 286)
+[node name="C" type="Marker3D" parent="Stage5_DeepReliquary/SpawnPoints"]
+position = Vector3(-42, -7, 332)
+[node name="D" type="Marker3D" parent="Stage5_DeepReliquary/SpawnPoints"]
+position = Vector3(42, -7, 340)
+[node name="GateToBoss" parent="Stage5_DeepReliquary" node_paths=PackedStringArray("encounter_manager") instance=ExtResource("4_gate")]
+position = Vector3(0, -2, 355)
+scale = Vector3(3.5, 1, 1)
+encounter_manager = NodePath("../EncounterManager")
+visual_blend_depth = 30.0
+storm_color = Color(0.48, 0.08, 0.18, 0.76)
+storm_core_color = Color(0.1, 0.015, 0.04, 0.82)
+density_multiplier = 1.25
+
+[node name="Stage6_BossSanctum" type="Node3D" parent="."]
+[node name="BossFloor" type="CSGCylinder3D" parent="Stage6_BossSanctum"]
+position = Vector3(0, -8.5, 410)
+radius = 72.0
+height = 1.0
+sides = 48
+use_collision = true
+material_override = SubResource("DungeonMat")
+[node name="EncounterManager" type="Node" parent="Stage6_BossSanctum" node_paths=PackedStringArray("spawn_points_root")]
+script = ExtResource("2_encounter")
+encounter_kind = 2
+enemy_scene = ExtResource("5_melee")
+boss_scene = ExtResource("7_elite")
+wave_enemy_counts = Array[int]([1])
+auto_start = false
+spawn_points_root = NodePath("../SpawnPoints")
+max_simultaneous_enemies = 1
+metadata/_note = "Replace boss_scene with the real Level 1 boss when available."
+[node name="SpawnPoints" type="Node3D" parent="Stage6_BossSanctum"]
+[node name="BossPlaceholder" type="Marker3D" parent="Stage6_BossSanctum/SpawnPoints"]
+position = Vector3(0, -7, 410)

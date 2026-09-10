@@ -15,10 +15,10 @@ extends CharacterBody3D
 
 @export_category("Movement")
 
-@export var move_speed = 30.0
+@export var move_speed = 38.0
 @export var gravity = 20.0
 @export var turn_speed = 10.0
-@export var movement_acceleration = 60.0
+@export var movement_acceleration = 92.0
 
 @export_group("Enemy Separation")
 @export var separation_radius = 5.0
@@ -70,11 +70,11 @@ var active_finishers = {}
 @export_category("Melee Attack")
 
 @export var attack_range = 3.0
-@export var attack_damage = 20
+@export var attack_damage = 42
 
 @export var attack_windup = 0.35
 @export var attack_recovery = 0.25
-@export var attack_cooldown = 1.0
+@export var attack_cooldown = 0.72
 
 @export_group("Hound Moveset")
 @export var swipe_radius: float = 7.5
@@ -82,16 +82,16 @@ var active_finishers = {}
 @export var swipe_windup: float = 0.55
 @export var bite_range: float = 6.0
 @export var bite_windup: float = 0.42
-@export var pounce_min_distance: float = 10.0
-@export var pounce_range: float = 22.0
-@export var pounce_windup: float = 0.72
-@export var pounce_speed: float = 48.0
-@export var pounce_duration: float = 0.32
-@export var circle_chance: float = 0.32
-@export var circle_duration: float = 0.55
-@export var circle_speed: float = 24.0
-@export var decision_pause_min: float = 0.16
-@export var decision_pause_max: float = 0.42
+@export var pounce_min_distance: float = 8.0
+@export var pounce_range: float = 30.0
+@export var pounce_windup: float = 0.52
+@export var pounce_speed: float = 66.0
+@export var pounce_duration: float = 0.38
+@export var circle_chance: float = 0.46
+@export var circle_duration: float = 0.38
+@export var circle_speed: float = 36.0
+@export var decision_pause_min: float = 0.06
+@export var decision_pause_max: float = 0.18
 @export var attack_flash_color: Color = Color(1.0, 0.16, 0.06)
 @export var warning_sound: AudioStream = preload("res://assets/audio/enemies/robot_jump.wav")
 @export var strike_sound: AudioStream = preload("res://assets/audio/enemies/robot_land.wav")
@@ -113,10 +113,16 @@ var attack_audio: AudioStreamPlayer3D
 @export var ally_reaction_stagger: float = 0.25
 @export var death_ragdoll_time: float = 1.4
 @export var ragdoll_collision_stagger: float = 0.22
+@export var aerial_spin_knockback_threshold: float = 35.0
+@export var aerial_spin_launch_threshold: float = 10.0
+@export var aerial_spin_speed: Vector3 = Vector3(17.0, 23.0, 19.0)
 var heavy_hit_count := 0
 var heavy_hit_timer := 0.0
 var dying := false
 var ragdoll_hit_ids: Dictionary = {}
+var aerial_spin_active := false
+var aerial_spin_direction := Vector3.ONE
+var visual_base_rotation := Vector3.ZERO
 
 
 # =============================================================================
@@ -171,7 +177,7 @@ var ranged_telegraph_material: StandardMaterial3D
 
 @export_category("Health")
 
-@export var max_health: float = 100.0
+@export var max_health: float = 125.0
 
 var health: float
 
@@ -193,6 +199,9 @@ var aggro = false
 # =============================================================================
 
 func _ready():
+	var visual := get_node_or_null("CollisionShape3D/MeshInstance3D") as Node3D
+	if visual:
+		visual_base_rotation = visual.rotation
 	add_to_group("enemies")
 
 	attack_telegraph.hide()
@@ -213,28 +222,29 @@ func _ready():
 func configure_combat_role():
 	match combat_role:
 		0: # Bruiser: broad, heavy lane that forces an early dodge.
-			move_speed = 27.0
-			attack_damage = 26
+			move_speed = 35.0
+			attack_damage = 52
+			attack_cooldown = 0.82
 			ranged_melee_width = 5.5
-			ranged_melee_damage = 28
-			ranged_melee_windup = 1.0
+			ranged_melee_damage = 58
+			ranged_melee_windup = 0.82
 			attack_telegraph.text = "HEAVY"
 		1: # Pursuer: reaches the player quickly with narrower fast swings.
-			move_speed = 40.0
+			move_speed = 54.0
 			attack_range = 4.2
-			attack_damage = 18
-			attack_windup = 0.25
-			attack_cooldown = 0.72
+			attack_damage = 36
+			attack_windup = 0.22
+			attack_cooldown = 0.48
 			ranged_melee_width = 3.0
 			ranged_melee_windup = 0.62
 			attack_telegraph.text = "RUSH"
 		2: # Reaper: controls a long lane but leaves a clear punish window.
-			move_speed = 32.0
+			move_speed = 43.0
 			ranged_melee_range = 23.0
 			ranged_melee_width = 4.2
-			ranged_melee_damage = 22
-			ranged_melee_windup = 0.78
-			ranged_melee_recovery = 0.62
+			ranged_melee_damage = 46
+			ranged_melee_windup = 0.62
+			ranged_melee_recovery = 0.42
 			attack_telegraph.text = "CLEAVE"
 
 
@@ -243,6 +253,7 @@ func configure_combat_role():
 # =============================================================================
 
 func _physics_process(delta):
+	update_aerial_spin(delta)
 	if dying:
 		update_gravity(delta)
 		velocity.x = move_toward(velocity.x, 0.0, 4.0 * delta)
@@ -582,6 +593,8 @@ func perform_hound_move(move_name: String, windup: float, move_kind: int) -> voi
 			move_and_slide()
 			elapsed += get_physics_process_delta_time()
 			await get_tree().physics_frame
+		if is_instance_valid(Player) and Player.has_method("break_panes_in_enemy_attack"):
+			Player.break_panes_in_enemy_attack(global_position + forward * 2.0, swipe_radius)
 		if is_instance_valid(Player) and global_position.distance_to(Player.global_position) <= swipe_radius:
 			Player.take_damage(attack_damage + 6)
 	else:
@@ -590,6 +603,8 @@ func perform_hound_move(move_name: String, windup: float, move_kind: int) -> voi
 		if move_kind == 2:
 			center += right * (-swipe_side_offset if move_name.begins_with("LEFT") else swipe_side_offset)
 		var radius := bite_range * 0.55 if move_kind == 1 else swipe_radius
+		if Player.has_method("break_panes_in_enemy_attack"):
+			Player.break_panes_in_enemy_attack(center, radius)
 		if Player.global_position.distance_to(center) <= radius:
 			Player.take_damage(attack_damage + (5 if move_kind == 1 else 0))
 	spawn_attack_impact(move_kind, forward)
@@ -637,6 +652,8 @@ func melee_attack():
 	attack_telegraph.hide()
 
 	if is_instance_valid(Player):
+		if Player.has_method("break_panes_in_enemy_attack"):
+			Player.break_panes_in_enemy_attack(global_position, attack_range)
 		var distance = global_position.distance_to(
 			Player.global_position
 		)
@@ -774,6 +791,8 @@ func perform_ranged_melee_hit(direction):
 		return
 
 	var origin = global_position
+	if Player.has_method("break_panes_along_enemy_attack"):
+		Player.break_panes_along_enemy_attack(origin, origin + direction * ranged_melee_range, ranged_melee_width * 0.5)
 
 	var to_player = (
 		Player.global_position
@@ -1045,7 +1064,6 @@ func _on_aggro_radius_body_entered(body):
 		Player = body
 		aggro = true
 
-		print("Player detected")
 
 
 # =============================================================================
@@ -1189,6 +1207,9 @@ func apply_hit_effect(
 	)
 
 	velocity.y = launch_force
+	if knockback_strength >= aerial_spin_knockback_threshold or launch_force >= aerial_spin_launch_threshold:
+		aerial_spin_active = true
+		aerial_spin_direction = Vector3(1.0 if randf() > 0.5 else -1.0, 1.0 if randf() > 0.5 else -1.0, 1.0 if randf() > 0.5 else -1.0)
 
 	knockback_timer = knockback_duration
 	if knockback_strength >= 12.0 or launch_force >= 5.0:
@@ -1201,7 +1222,20 @@ func play_directional_hit_reaction(hit_direction: Vector3, strength: float, laun
 	if visual:
 		var tween := create_tween()
 		tween.tween_property(visual, "rotation", target_tilt, hit_stop_seconds)
-		tween.tween_property(visual, "rotation", Vector3.ZERO, 0.14)
+		tween.tween_property(visual, "rotation", visual_base_rotation, 0.14)
+
+func update_aerial_spin(delta: float) -> void:
+	if not aerial_spin_active:
+		return
+	var visual := get_node_or_null("CollisionShape3D/MeshInstance3D") as Node3D
+	if not visual:
+		aerial_spin_active = false
+		return
+	if is_on_floor() and velocity.y <= 0.0:
+		aerial_spin_active = false
+		visual.rotation = visual_base_rotation
+		return
+	visual.rotation += aerial_spin_speed * aerial_spin_direction * delta
 
 func spawn_hit_impact() -> void:
 	var flash := OmniLight3D.new()
@@ -1363,6 +1397,9 @@ func die():
 	if dying:
 		return
 	dying = true
+	for player in get_tree().get_nodes_in_group("players"):
+		if player.has_method("on_enemy_killed"):
+			player.on_enemy_killed()
 	cancel_current_attack()
 	get_node("/root/EnemyCombatDirector").notify_ally_disrupted(self, velocity)
 	set_collision_layer_value(1, false)

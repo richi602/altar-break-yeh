@@ -24,6 +24,8 @@ enum EncounterKind { NORMAL, ELITE, BOSS }
 @export var spawn_points_root: Node3D
 @export var spawn_delay := 0.35
 @export var wave_clear_delay := 0.80
+@export var max_simultaneous_enemies: int = 26
+@export var reinforcement_spawn_delay: float = 0.08
 
 @export_category("Developer Testing")
 @export var enable_kill_all_button := true
@@ -31,21 +33,33 @@ enum EncounterKind { NORMAL, ELITE, BOSS }
 @export_category("Elite Godshards")
 @export var reward_scene: PackedScene
 @export var reward_spawn_points_root: Node3D
+@export_enum("Random", "Electric") var reward_theme: int = 0
 
 var state: State = State.WAITING
 var current_wave_index := 0
 var alive_enemies: Dictionary = {}
 var spawning_wave := false
+var refilling_wave := false
 var transition_pending := false
 var active_rewards: Array[Node] = []
 var wave_label: Label
 var kill_all_button: Button
+var pending_wave_enemy_count := 0
+var next_wave_spawn_index := 0
+var pending_wave_scene: PackedScene
+var pending_wave_is_final := false
 
 const REWARD_POOL = [
 	{"id": "fractured_eye", "title": "FRACTURED EYE", "description": "+25% projectile damage"},
 	{"id": "weightless_sin", "title": "WEIGHTLESS SIN", "description": "+15% movement speed"},
 	{"id": "shattered_heart", "title": "SHATTERED HEART", "description": "+10% max health + heal"},
 	{"id": "violent_reflection", "title": "VIOLENT REFLECTION", "description": "stronger dash impact"}
+]
+
+const ELECTRIC_REWARD_POOL = [
+	{"id": "stormglass_cadence", "title": "STORMGLASS CADENCE", "description": "+25% attack speed"},
+	{"id": "living_circuit", "title": "LIVING CIRCUIT", "description": "-30% ability cooldowns"},
+	{"id": "thunder_verse", "title": "THUNDER VERSE", "description": "+15% attack speed, -15% cooldowns"}
 ]
 
 func _ready() -> void:
@@ -109,14 +123,29 @@ func begin_wave() -> void:
 		enemy_count = 1
 	set_wave_text(get_wave_title(wave_number, is_final_wave))
 	wave_started.emit(wave_number)
-	for i in range(enemy_count):
-		var selected_scene := scene_to_spawn
-		if not is_final_wave or encounter_kind == EncounterKind.NORMAL:
-			selected_scene = get_normal_enemy_scene(i)
-		spawn_enemy(selected_scene, i)
-		if i < enemy_count - 1 and spawn_delay > 0.0:
-			await get_tree().create_timer(spawn_delay).timeout
+	pending_wave_enemy_count = enemy_count
+	next_wave_spawn_index = 0
+	pending_wave_scene = scene_to_spawn
+	pending_wave_is_final = is_final_wave
+	await refill_active_horde(spawn_delay)
 	spawning_wave = false
+	check_wave_cleared()
+
+func refill_active_horde(delay_between: float = -1.0) -> void:
+	if refilling_wave or state != State.WAVE:
+		return
+	refilling_wave = true
+	var active_cap := maxi(max_simultaneous_enemies, 1)
+	var delay := reinforcement_spawn_delay if delay_between < 0.0 else delay_between
+	while alive_enemies.size() < active_cap and next_wave_spawn_index < pending_wave_enemy_count:
+		var selected_scene := pending_wave_scene
+		if not pending_wave_is_final or encounter_kind == EncounterKind.NORMAL:
+			selected_scene = get_normal_enemy_scene(next_wave_spawn_index)
+		spawn_enemy(selected_scene, next_wave_spawn_index)
+		next_wave_spawn_index += 1
+		if delay > 0.0 and alive_enemies.size() < active_cap and next_wave_spawn_index < pending_wave_enemy_count:
+			await get_tree().create_timer(delay).timeout
+	refilling_wave = false
 	check_wave_cleared()
 
 func get_normal_enemy_scene(spawn_index: int) -> PackedScene:
@@ -150,10 +179,12 @@ func spawn_enemy(scene_to_spawn: PackedScene, spawn_index: int) -> void:
 
 func on_spawned_enemy_exited(enemy_id: int) -> void:
 	alive_enemies.erase(enemy_id)
+	if state == State.WAVE and next_wave_spawn_index < pending_wave_enemy_count:
+		call_deferred("refill_active_horde")
 	check_wave_cleared()
 
 func check_wave_cleared() -> void:
-	if state != State.WAVE or spawning_wave or not alive_enemies.is_empty() or transition_pending:
+	if state != State.WAVE or spawning_wave or refilling_wave or next_wave_spawn_index < pending_wave_enemy_count or not alive_enemies.is_empty() or transition_pending:
 		return
 	transition_pending = true
 	call_deferred("finish_wave")
@@ -188,7 +219,7 @@ func start_reward_phase() -> void:
 	reward_phase_started.emit()
 	set_wave_text("CHOOSE A GODSHARD")
 	var reward_points := reward_spawn_points_root.get_children()
-	var pool := REWARD_POOL.duplicate(true)
+	var pool := (ELECTRIC_REWARD_POOL if reward_theme == 1 else REWARD_POOL).duplicate(true)
 	pool.shuffle()
 	var choice_count: int = mini(3, mini(reward_points.size(), pool.size()))
 	for i in range(choice_count):

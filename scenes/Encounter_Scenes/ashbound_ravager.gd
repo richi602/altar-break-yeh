@@ -323,6 +323,8 @@ func pounce_attack(direction: Vector3) -> void:
 	pounce_direction = direction
 	pounce_timer = 0.24
 	await get_tree().create_timer(0.24).timeout
+	if is_instance_valid(player) and player.has_method("break_panes_in_enemy_attack"):
+		player.break_panes_in_enemy_attack(global_position, attack_range + 2.0)
 	if is_instance_valid(player) and global_position.distance_to(player.global_position) <= attack_range + 2.0:
 		player.take_damage(pounce_damage)
 	await get_tree().create_timer(0.18).timeout
@@ -361,6 +363,8 @@ func perform_claw_swipe(claw: MeshInstance3D, left_side: bool) -> void:
 	strike.tween_property(claw, "rotation", base_rotation + Vector3(0.0, 0.0, 1.7 if left_side else -1.7), 0.065)
 	spawn_slash_vfx(left_side)
 	impact_sfx.play()
+	if is_instance_valid(player) and player.has_method("break_panes_in_enemy_attack"):
+		player.break_panes_in_enemy_attack(global_position, claw_attack_radius)
 	if is_instance_valid(player) and global_position.distance_to(player.global_position) <= claw_attack_radius:
 		player.take_damage(attack_damage)
 	await strike.finished
@@ -386,6 +390,8 @@ func perform_lunging_bite() -> void:
 	if bite_direction.length_squared() > 0.01:
 		bite_direction = bite_direction.normalized()
 		global_position += bite_direction * 5.5
+	if player.has_method("break_panes_in_enemy_attack"):
+		player.break_panes_in_enemy_attack(global_position, bite_attack_radius)
 	if global_position.distance_to(player.global_position) <= bite_attack_radius:
 		player.take_damage(combo_final_damage)
 		if player.has_method("apply_enemy_knockback"):
@@ -539,6 +545,8 @@ func update_endless_hunt(delta: float) -> void:
 		desperation_charge_timer -= delta
 		velocity.x = desperation_charge_direction.x * desperation_charge_speed
 		velocity.z = desperation_charge_direction.z * desperation_charge_speed
+		if is_instance_valid(player) and player.has_method("break_panes_in_enemy_attack"):
+			player.break_panes_in_enemy_attack(global_position, 5.5)
 		if not desperation_charge_hit and is_instance_valid(player):
 			var horizontal_distance := Vector2(global_position.x - player.global_position.x, global_position.z - player.global_position.z).length()
 			var player_is_low := player.global_position.y <= global_position.y + desperation_jump_clearance
@@ -902,6 +910,9 @@ func flash_hit() -> void:
 
 func die() -> void:
 	dead = true
+	for player_node in get_tree().get_nodes_in_group("players"):
+		if player_node.has_method("on_enemy_killed"):
+			player_node.on_enemy_killed()
 	orbiting = false
 	telegraph.hide()
 	clear_charge_indicator()

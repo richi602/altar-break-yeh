@@ -164,6 +164,7 @@ var slam_camera_roll_kick = 0.0
 @onready var health_bar = find_child("HealthBar", true, false)
 @onready var anim = find_child("AnimationPlayer", true, false)
 @onready var dodge_visual: Node3D = $edgelord
+@onready var character_skeleton: Skeleton3D = $edgelord/rig/Skeleton3D
 var health = 0.0
 var locked_enemy = null
 var lock_targets = []
@@ -172,8 +173,10 @@ var lock_reticle = null
 
 # ── WALK OF EMO BAND ──
 @export var teleport_range = 100.0
-@export var teleport_cooldown = 0.28
+@export var teleport_cooldown = 0.12
+@export var teleport_kill_refund: float = 0.08
 @export var teleport_recovery = 0.10
+@export var teleport_input_buffer_time: float = 0.18
 @export var teleport_side_offset = 2.0
 @export var teleport_height_offset = 0.5
 @export var teleport_target_screen_radius = 0.30
@@ -186,7 +189,13 @@ var lock_reticle = null
 @export var teleport_low_gravity_duration = 0.65
 @export var teleport_gravity_multiplier = 0.20
 @export var teleport_followup_window = 1.60
+@export var pane_pull_time: float = 0.12
+@export var pane_pull_forward_offset: float = 4.0
+@export var pane_pull_height_offset: float = 1.5
+@export var pane_pull_cooldown: float = 14.0
 var teleport_cooldown_timer = 0.0
+var pane_pull_cooldown_timer = 0.0
+var teleport_input_buffer_timer: float = 0.0
 var teleport_camera_timer = 0.0
 var teleport_followup_timer = 0.0
 var low_gravity_timer = 0.0
@@ -200,6 +209,9 @@ var teleport_enemy_was_physics_active = true
 
 # ── PANES OF PAIN ──
 @export_flags_3d_physics var glass_collision_layer: int = 2
+@export_group("Breakable Panes")
+@export var pane_tumble_break_speed: float = 12.0
+@export var pane_attack_break_shards: int = 32
 @export var glass_pane_max_count = 96
 @export var glass_walk_gravity_multiplier = 0.12
 @export var glass_walk_max_fall_speed = -3.0
@@ -403,9 +415,9 @@ var ult_bar
 @export var normal_projectile_target_range = 65.0
 @export var combo_reset_time = 1.0
 @export var combo_hold_delay = 0.10
-@export var combo_hit_one_recovery = 0.20
-@export var combo_hit_two_recovery = 0.24
-@export var combo_finisher_recovery = 0.46
+@export var combo_hit_one_recovery = 0.28
+@export var combo_hit_two_recovery = 0.34
+@export var combo_finisher_recovery = 0.56
 @export var ability_recovery = 0.42
 @export var ultimate_recovery = 0.85
 @export var finisher_projectile_count = 8
@@ -415,15 +427,31 @@ var ult_bar
 @export var finisher_setup_stun_time = 1.5
 @export var finisher_target_range = 90.0
 @export_category("Vortex of Poetry Melee")
-@export var melee_reach: float = 7.0
-@export var melee_step_distances: Vector3 = Vector3(0.8, 1.15, 0.65)
+@export var melee_reach: float = 11.5
+@export var melee_step_distances: Vector3 = Vector3(1.1, 1.5, 0.9)
+@export_group("Sword Body Movement")
+@export var sword_motion_speeds: Vector3 = Vector3(52.0, 66.0, 82.0)
+@export var sword_motion_durations: Vector3 = Vector3(0.16, 0.19, 0.25)
+@export var second_swing_cross_amount: float = 0.32
+@export var left_finisher_motion_angle: float = -42.0
+@export var right_finisher_motion_angle: float = 52.0
+@export var sword_motion_input_influence: float = 0.14
+@export var sword_motion_targeting_strength: float = 0.88
+@export var sword_motion_side_targeting_strength: float = 0.42
+@export var sword_motion_arrival_distance: float = 2.4
+@export var melee_focus_range: float = 46.0
+@export_group("Melee Hit Tuning")
 @export var melee_damage_tiers: Vector3 = Vector3(14.0, 21.0, 38.0)
 @export var melee_break_tiers: Vector3 = Vector3(16.0, 28.0, 75.0)
 @export var melee_stagger_tiers: Vector3 = Vector3(0.14, 0.28, 0.55)
-@export var melee_knockback_tiers: Vector3 = Vector3(5.0, 15.0, 34.0)
-@export var melee_launch_tiers: Vector3 = Vector3(1.0, 4.0, 18.0)
-@export var melee_wave_start_distance: float = 7.5
+@export var melee_knockback_tiers: Vector3 = Vector3(18.0, 32.0, 58.0)
+@export var melee_launch_tiers: Vector3 = Vector3(2.0, 5.0, 10.0)
+@export var melee_wave_start_distance: float = 11.8
 @export var melee_cooldown_refund: float = 0.28
+@export var melee_contact_delays: Vector3 = Vector3(0.10, 0.115, 0.18)
+@export var melee_contact_brake: float = 0.32
+@export var melee_impact_light_energy: Vector3 = Vector3(5.0, 8.0, 15.0)
+@export var melee_impact_flash_radius: Vector3 = Vector3(3.5, 5.0, 8.0)
 @export var running_attack_speed_threshold: float = 11.0
 @export var dodge_attack_window: float = 0.42
 @export var mobility_attack_damage_multiplier: float = 1.35
@@ -431,13 +459,57 @@ var ult_bar
 @export var blade_flash_energy: float = 14.0
 @export var blade_shard_count: int = 18
 @export var perfect_click_window: float = 0.16
+@export var blade_hand_offset: Vector3 = Vector3(0.85, 1.45, 0.9)
+@export var blade_horizontal_arc_degrees: float = 72.0
+@export var blade_hand_anchor_stability: float = 0.55
+@export var blade_assembly_time: float = 0.045
+@export var blade_cut_time: float = 0.105
+@export var blade_follow_through_time: float = 0.09
+@export_group("Combat Responsiveness")
+@export var attack_input_buffer_time: float = 0.16
+@export var combo_dodge_preserve_time: float = 0.78
+@export var dodge_exit_momentum: float = 0.24
+@export var finisher_dodge_commitment: float = 0.10
+@export var jump_buffer_time: float = 0.12
+@export var jump_coyote_time: float = 0.10
+@export_group("Sword Combo Branches")
+@export var lateral_sweep_radius_multiplier: float = 1.35
+@export var driving_finisher_knockback_multiplier: float = 1.45
+@export var driving_finisher_launch: float = 3.0
+@export_group("Directional Finishers")
+@export var left_finisher_gather_radius_multiplier: float = 1.42
+@export var left_finisher_inward_force: float = 32.0
+@export var left_finisher_launch: float = 17.0
+@export var right_finisher_cleave_radius_multiplier: float = 1.28
+@export var right_finisher_sweep_force: float = 72.0
+@export var right_finisher_launch: float = 8.0
+@export var directional_branch_threshold: float = 0.45
+@export_group("Double Click Sword Cyclone")
+@export var sword_cyclone_duration: float = 3.0
+@export var sword_cyclone_cooldown: float = 14.0
+@export var sword_cyclone_radius: float = 23.0
+@export var sword_cyclone_hit_interval: float = 0.08
+@export var sword_cyclone_sweep_arc_degrees: float = 115.0
+@export var sword_cyclone_move_speed_multiplier: float = 0.85
+@export var sword_cyclone_damage: float = 8.0
+@export var sword_cyclone_knockback: float = 10.0
+@export var sword_cyclone_launch: float = 2.5
+@export var sword_cyclone_final_damage: float = 30.0
+@export var sword_cyclone_final_knockback: float = 76.0
+@export var sword_cyclone_final_launch: float = 16.0
+@export var sword_cyclone_turns_per_second: float = 4.5
+@export var sword_cyclone_direction_spread_degrees: float = 78.0
+@export var sword_cyclone_final_direction_spread_degrees: float = 145.0
+@export var sword_cyclone_launch_variation: float = 8.0
+@export var air_arena_cooldown: float = 1.25
 @export_group("Final Word Air Carry")
 @export var vortex_carry_duration: float = 0.72
 @export var vortex_carry_height_offset: float = 0.4
 @export var vortex_carry_side_distance: float = 2.8
 @export var vortex_carry_follow_speed: float = 52.0
-@export var vortex_carry_vertical_speed: float = 21.0
+@export var vortex_carry_vertical_speed: float = 12.0
 @export var aerial_suspension_speed: float = 4.5
+@export var finisher_auto_air_carry: bool = false
 var run_projectile_damage_multiplier = 1.0
 # ── RETICLE AIMING ──
 @export var aim_distance = 2000.0
@@ -457,6 +529,26 @@ var combo_melee_hit_ids: Dictionary = {}
 var last_combo_click_msec: int = 0
 var vortex_carry_target: Node3D
 var vortex_carry_timer := 0.0
+var attack_buffer_timer := 0.0
+var attack_held := false
+var attack_buffer_is_hold := false
+var dodge_preserved_combo := false
+var attack_cancel_lock_timer := 0.0
+var sword_motion_timer: float = 0.0
+var sword_motion_velocity: Vector3 = Vector3.ZERO
+var sword_motion_target = null
+var sword_motion_tracking_strength: float = 0.0
+var melee_focus_target = null
+var sword_cyclone_active: bool = false
+var sword_cyclone_timer: float = 0.0
+var sword_cyclone_cooldown_timer: float = 0.0
+var sword_cyclone_hit_timer: float = 0.0
+var sword_cyclone_visual_start_y: float = 0.0
+var sword_cyclone_angle: float = 0.0
+var sword_cyclone_hit_serial: int = 0
+var jump_buffer_timer := 0.0
+var coyote_timer := 0.0
+var air_arena_cooldown_timer := 0.0
 
 # Fast active abilities. Neither one requires movement panes.
 @export var rift_cleave_cooldown = 2.4
@@ -466,8 +558,35 @@ var vortex_carry_timer := 0.0
 @export var ruin_volley_cooldown = 4.0
 @export var ruin_volley_projectiles = 7
 @export var ruin_volley_damage = 4.0
+@export_group("F - Falling Pane Crown")
+@export var falling_pane_spawn_height: float = 20.0
+@export var falling_pane_forward_offset: float = 8.0
+@export var falling_pane_form_time: float = 0.72
+@export var falling_pane_camera_pitch_degrees: float = -38.0
+@export var falling_pane_crash_time: float = 0.42
+@export var falling_pane_size: Vector3 = Vector3(90.0, 0.8, 55.0)
+@export var falling_pane_impact_radius: float = 48.0
+@export var falling_pane_explosion_damage: float = 24.0
+@export var falling_pane_knockback: float = 58.0
+@export var falling_pane_launch: float = 16.0
+@export var falling_pane_explosion_light_energy: float = 18.0
+@export_group("E - Cathedral Suspension Pulse")
+@export var fracture_well_radius: float = 38.0
+@export var fracture_well_pull: float = 7.0
+@export var fracture_well_damage: float = 12.0
+@export var suspension_pulse_launch: float = 15.0
+@export var suspension_pulse_hold_time: float = 1.15
+@export var suspension_pulse_stun: float = 0.75
+@export_group("Combo Center Retention")
+@export var combo_center_lane_half_width: float = 3.4
+@export var combo_center_knockback: float = 2.5
+@export var combo_center_launch: float = 0.5
+@export var combo_side_launch: Vector2 = Vector2(22.0, 26.0)
+@export var swing_one_center_launch: float = 18.0
 var rift_cleave_timer := 0.0
 var ruin_volley_timer := 0.0
+var falling_pane_cast_active: bool = false
+var falling_pane_saved_camera_pitch: float = 0.0
 
 # ── UI ──
 var followup_ui
@@ -578,8 +697,27 @@ func setup_materials():
 # ── INPUT ──
 
 func _unhandled_input(event):
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed and event.double_click:
+		try_start_sword_cyclone()
+		get_viewport().set_input_as_handled()
+		return
+	if event.is_action_pressed("attack"):
+		attack_held = true
+		attack_buffer_timer = attack_input_buffer_time
+		attack_buffer_is_hold = false
+	elif event.is_action_released("attack"):
+		attack_held = false
+		if attack_buffer_is_hold:
+			attack_buffer_timer = 0.0
+	if event.is_action_pressed("jump"):
+		jump_buffer_timer = jump_buffer_time
+	if event.is_action_pressed("dodge"):
+		# Survival input owns the one-slot buffer. Never make the player fight
+		# an old queued slash after asking to evade.
+		attack_buffer_timer = 0.0
+		attack_buffer_is_hold = false
 	if event is InputEventMouseMotion:
-		if slam_camera_active:
+		if slam_camera_active or falling_pane_cast_active:
 			return
 		rotate_y(-event.relative.x * mouse_sensitivity)
 		camera_pitch_target = clamp(
@@ -589,18 +727,22 @@ func _unhandled_input(event):
 			deg_to_rad(camera_pitch_max)
 		)
 	if event is InputEventMouseButton and event.pressed:
-		if slam_camera_active or combat_recovery_timer > 0.0:
+		if slam_camera_active:
 			return
 		match event.button_index:
 			MOUSE_BUTTON_RIGHT:
-				if not elite_mini_boss_active():
-					try_airborne_teleport()
+				# Buffer the click briefly instead of dropping it during the last
+				# frames of an attack or teleport recovery.
+				teleport_input_buffer_timer = teleport_input_buffer_time
 			MOUSE_BUTTON_MIDDLE:
-				toggle_lock()
+				if combat_recovery_timer <= 0.0:
+					toggle_lock()
 			MOUSE_BUTTON_WHEEL_UP:
-				switch_target(1)
+				if combat_recovery_timer <= 0.0:
+					switch_target(1)
 			MOUSE_BUTTON_WHEEL_DOWN:
-				switch_target(-1)
+				if combat_recovery_timer <= 0.0:
+					switch_target(-1)
 	if event is InputEventKey and event.pressed and not event.echo:
 		if combat_recovery_timer > 0.0:
 			return
@@ -614,7 +756,7 @@ func _unhandled_input(event):
 
 func elite_mini_boss_active() -> bool:
 	for elite in get_tree().get_nodes_in_group("elite_enemies"):
-		if is_instance_valid(elite) and not bool(elite.get("broken")):
+		if is_instance_valid(elite) and elite.get("broken") != true:
 			return true
 	return false
 
@@ -622,6 +764,8 @@ func elite_mini_boss_active() -> bool:
 
 func _physics_process(delta):
 	update_timers(delta)
+	update_sword_cyclone(delta)
+	update_teleport_input()
 	update_empowered_slam_return(delta)
 
 	if empowered_slam_player_drop_lock_timer > 0.0:
@@ -638,6 +782,7 @@ func _physics_process(delta):
 	update_gravity(delta)
 	update_jump(used_jump)
 	update_dodge(direction, delta)
+	update_sword_motion(direction, delta)
 	update_vortex_air_carry(delta)
 	update_dodge_visual()
 	if enemy_knockback_timer > 0.0 and not is_dodging:
@@ -660,6 +805,7 @@ func _physics_process(delta):
 	update_air_camera_focus(delta)
 	update_slam_camera(delta)
 	update_camera(delta)
+	update_falling_pane_camera(delta)
 	update_lock_reticle()
 	update_aim_reticle()
 	update_followup_ui()
@@ -677,11 +823,19 @@ func update_timers(delta):
 		if dodge_chain_reset_timer <= 0.0:
 			consecutive_dodges = 0
 	teleport_cooldown_timer = tick(teleport_cooldown_timer, delta)
+	pane_pull_cooldown_timer = tick(pane_pull_cooldown_timer, delta)
+	teleport_input_buffer_timer = tick(teleport_input_buffer_timer, delta)
 	rift_cleave_timer = tick(rift_cleave_timer, delta)
 	ruin_volley_timer = tick(ruin_volley_timer, delta)
 	low_gravity_timer = tick(low_gravity_timer, delta)
 	glass_pane_spawn_timer = tick(glass_pane_spawn_timer, delta)
 	combo_hold_timer = tick(combo_hold_timer, delta)
+	attack_buffer_timer = tick(attack_buffer_timer, delta)
+	attack_cancel_lock_timer = tick(attack_cancel_lock_timer, delta)
+	sword_motion_timer = tick(sword_motion_timer, delta)
+	sword_cyclone_cooldown_timer = tick(sword_cyclone_cooldown_timer, delta)
+	jump_buffer_timer = tick(jump_buffer_timer, delta)
+	air_arena_cooldown_timer = tick(air_arena_cooldown_timer, delta)
 	combat_recovery_timer = tick(combat_recovery_timer, delta)
 	slam_recovery_timer = tick(slam_recovery_timer, delta)
 	pane_enemy_sync_timer -= delta
@@ -696,6 +850,8 @@ func update_timers(delta):
 		combo_timer -= delta
 	else:
 		combo_step = 0
+		melee_focus_target = null
+		dodge_preserved_combo = false
 	if not can_dodge:
 		dodge_cooldown_timer -= delta
 		if dodge_cooldown_timer <= 0.0:
@@ -713,6 +869,148 @@ func weight(speed_value, delta):
 
 func valid(node):
 	return is_instance_valid(node)
+
+func try_start_sword_cyclone() -> void:
+	if sword_cyclone_active or sword_cyclone_cooldown_timer > 0.0 or slam_camera_active or falling_pane_cast_active:
+		return
+	sword_cyclone_active = true
+	sword_cyclone_timer = sword_cyclone_duration
+	sword_cyclone_cooldown_timer = sword_cyclone_cooldown
+	sword_cyclone_hit_timer = 0.0
+	sword_cyclone_angle = 0.0
+	sword_cyclone_hit_serial = 0
+	sword_cyclone_visual_start_y = dodge_visual.rotation.y if dodge_visual else 0.0
+	attack_buffer_timer = 0.0
+	attack_buffer_is_hold = false
+	sword_motion_timer = 0.0
+	combo_step = 0
+	combo_timer = 0.0
+	melee_focus_target = null
+	attacking = true
+	combat_recovery_timer = sword_cyclone_duration
+	velocity = Vector3.ZERO
+
+func update_sword_cyclone(delta: float) -> void:
+	if not sword_cyclone_active:
+		return
+	sword_cyclone_timer = maxf(0.0, sword_cyclone_timer - delta)
+	sword_cyclone_hit_timer -= delta
+	combat_recovery_timer = maxf(combat_recovery_timer, sword_cyclone_timer)
+	sword_cyclone_angle = fmod(sword_cyclone_angle + TAU * sword_cyclone_turns_per_second * delta, TAU)
+	if dodge_visual:
+		dodge_visual.rotation.y += TAU * sword_cyclone_turns_per_second * delta
+	if sword_cyclone_hit_timer <= 0.0 and sword_cyclone_timer > 0.0:
+		sword_cyclone_hit_timer = sword_cyclone_hit_interval
+		perform_sword_cyclone_hit(false)
+	if sword_cyclone_timer <= 0.0:
+		perform_sword_cyclone_hit(true)
+		sword_cyclone_active = false
+		attacking = false
+		combat_recovery_timer = 0.12
+		if dodge_visual:
+			dodge_visual.rotation.y = sword_cyclone_visual_start_y
+
+func perform_sword_cyclone_hit(final_hit: bool) -> void:
+	sword_cyclone_hit_serial += 1
+	var radius := sword_cyclone_radius * (1.25 if final_hit else 1.0)
+	var center := global_position + Vector3.UP
+	break_panes_in_enemy_attack(center, radius)
+	var sweep_direction := Vector3(sin(sword_cyclone_angle), 0.0, cos(sword_cyclone_angle)).normalized()
+	var sweep_threshold := cos(deg_to_rad(sword_cyclone_sweep_arc_degrees * 0.5))
+	for enemy in get_enemies_near(center, radius):
+		var outward: Vector3 = enemy.global_position - global_position
+		outward.y = 0.0
+		if outward.length_squared() < 0.01:
+			outward = global_transform.basis.z
+		if not final_hit and sweep_direction.dot(outward.normalized()) < sweep_threshold:
+			continue
+		# Scatter each victim along a different spoke of the cyclone. The serial
+		# changes every sweep, so repeated contacts do not form one tidy line.
+		var scatter_seed := float((enemy.get_instance_id() * 37 + sword_cyclone_hit_serial * 83) % 1000) / 999.0
+		var spread := sword_cyclone_final_direction_spread_degrees if final_hit else sword_cyclone_direction_spread_degrees
+		var scatter_angle := deg_to_rad(lerpf(-spread, spread, scatter_seed))
+		var scatter_direction := outward.normalized().rotated(Vector3.UP, scatter_angle)
+		var launch_variation := lerpf(-sword_cyclone_launch_variation * 0.35, sword_cyclone_launch_variation, fmod(scatter_seed * 7.13, 1.0))
+		hit_enemy(
+			enemy,
+			sword_cyclone_final_damage if final_hit else sword_cyclone_damage,
+			sword_cyclone_final_knockback if final_hit else sword_cyclone_knockback,
+			maxf(0.0, (sword_cyclone_final_launch if final_hit else sword_cyclone_launch) + launch_variation),
+			0.55 if final_hit else 0.10,
+			scatter_direction
+		)
+	spawn_cyclone_sweep_visual(sword_cyclone_angle, final_hit)
+	if final_hit and not ult_wave_materials.is_empty():
+		spawn_flash_sphere(center, radius, ult_wave_materials[2], 0.22)
+	if final_hit:
+		spawn_shard_burst(center, 84, radius, 1.1, 0.4)
+		camera_fov_pulse()
+
+func spawn_cyclone_sweep_visual(angle: float, final_hit: bool) -> void:
+	var pivot := Node3D.new()
+	add_child(pivot)
+	pivot.position = Vector3.UP * 1.15
+	pivot.rotation.y = angle - deg_to_rad(sword_cyclone_sweep_arc_degrees * 0.5)
+	var blade := MeshInstance3D.new()
+	var mesh := PrismMesh.new()
+	var visual_radius := sword_cyclone_radius * (1.25 if final_hit else 1.0)
+	mesh.size = Vector3(0.55 if not final_hit else 1.1, 0.24, visual_radius * 1.15)
+	blade.mesh = mesh
+	blade.position.z = visual_radius * 0.52
+	var material := StandardMaterial3D.new()
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.albedo_color = Color(0.32, 0.82, 1.0, 0.78) if not final_hit else Color(1.0, 0.22, 0.65, 0.94)
+	material.emission_enabled = true
+	material.emission = material.albedo_color
+	material.emission_energy_multiplier = 12.0 if not final_hit else 22.0
+	blade.material_override = material
+	pivot.add_child(blade)
+	var tween := create_tween()
+	tween.tween_property(pivot, "rotation:y", pivot.rotation.y + deg_to_rad(sword_cyclone_sweep_arc_degrees), sword_cyclone_hit_interval * 1.35).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(blade, "scale", Vector3(1.25, 0.4, 1.05), sword_cyclone_hit_interval * 1.35)
+	tween.parallel().tween_property(blade, "transparency", 1.0, sword_cyclone_hit_interval * 1.35)
+	tween.tween_callback(pivot.queue_free)
+
+func start_sword_motion(step: int, forward: Vector3, finisher_side: int = 0, target = null) -> void:
+	var motion_direction := forward.normalized()
+	if step == 2:
+		# The reverse cut carries Lucian across the target line instead of
+		# leaving his feet planted beneath a large sword effect.
+		motion_direction = (forward + global_transform.basis.x * second_swing_cross_amount).normalized()
+	elif step == 3 and finisher_side != 0:
+		var angle := left_finisher_motion_angle if finisher_side < 0 else right_finisher_motion_angle
+		motion_direction = forward.rotated(Vector3.UP, deg_to_rad(angle)).normalized()
+	var speed: float = [sword_motion_speeds.x, sword_motion_speeds.y, sword_motion_speeds.z][step - 1]
+	var duration: float = [sword_motion_durations.x, sword_motion_durations.y, sword_motion_durations.z][step - 1]
+	sword_motion_velocity = motion_direction * speed
+	sword_motion_timer = duration
+	sword_motion_target = target if valid(target) else null
+	sword_motion_tracking_strength = sword_motion_side_targeting_strength if finisher_side != 0 else sword_motion_targeting_strength
+
+func update_sword_motion(input_direction: Vector3, delta: float) -> void:
+	if sword_motion_timer <= 0.0 or is_dodging or enemy_knockback_timer > 0.0:
+		return
+	var steered_velocity := sword_motion_velocity
+	if valid(sword_motion_target):
+		var to_target: Vector3 = sword_motion_target.global_position - global_position
+		to_target.y = 0.0
+		if to_target.length_squared() > 0.01:
+			var target_velocity := to_target.normalized() * sword_motion_velocity.length()
+			steered_velocity = steered_velocity.lerp(target_velocity, sword_motion_tracking_strength)
+			# Keep the large Kingdom-Hearts-style travel without tunneling straight
+			# through the enemy when Lucian reaches striking distance.
+			var remaining_distance := maxf(0.0, to_target.length() - sword_motion_arrival_distance)
+			var arrival_speed := remaining_distance / maxf(delta, 0.001)
+			if arrival_speed < steered_velocity.length():
+				steered_velocity = steered_velocity.normalized() * arrival_speed
+	if input_direction.length_squared() > 0.01:
+		steered_velocity = steered_velocity.lerp(
+			input_direction.normalized() * sword_motion_velocity.length(),
+			sword_motion_input_influence
+		)
+	velocity.x = steered_velocity.x
+	velocity.z = steered_velocity.z
 
 # ── MOVEMENT ──
 
@@ -735,9 +1033,11 @@ func update_gravity(delta):
 		velocity.y = 0.0
 		return
 	if is_on_floor():
+		coyote_timer = jump_coyote_time
 		if velocity.y < 0.0:
 			velocity.y = 0.0
 		return
+	coyote_timer = tick(coyote_timer, delta)
 	var gravity_scale = 1.0
 	if low_gravity_timer > 0.0:
 		gravity_scale = min(gravity_scale, teleport_gravity_multiplier)
@@ -748,10 +1048,12 @@ func update_gravity(delta):
 		velocity.y = max(velocity.y, glass_walk_max_fall_speed)
 
 func update_jump(used_followup):
-	if teleport_hold_active or slam_camera_active:
+	if teleport_hold_active or slam_camera_active or falling_pane_cast_active or sword_cyclone_active:
 		return
-	if (not used_followup and Input.is_action_just_pressed("jump") and is_on_floor()):
+	if not used_followup and jump_buffer_timer > 0.0 and (is_on_floor() or coyote_timer > 0.0):
 		velocity.y = jump_force
+		jump_buffer_timer = 0.0
+		coyote_timer = 0.0
 
 # ── DASH ──
 
@@ -760,12 +1062,28 @@ func update_dodge(direction, delta):
 		velocity.x = 0.0
 		velocity.z = 0.0
 		return
+	if sword_cyclone_active:
+		# Lucian may drive the cyclone through the horde, but the input remains
+		# movement-only until the committed attack finishes.
+		velocity.x = direction.x * speed * sword_cyclone_move_speed_multiplier
+		velocity.z = direction.z * speed * sword_cyclone_move_speed_multiplier
+		return
+	if falling_pane_cast_active:
+		velocity.x = 0.0
+		velocity.z = 0.0
+		return
 
 	if teleport_hold_active or slam_camera_active:
 		velocity.x = 0.0
 		velocity.z = 0.0
 		return
-	if (Input.is_action_just_pressed("dodge") and can_dodge):
+	if (Input.is_action_just_pressed("dodge") and can_dodge and attack_cancel_lock_timer <= 0.0):
+		# Recovery is deliberately dodge-cancellable. Preserve the next combo
+		# step through one dodge, but never through an indefinite dodge chain.
+		if combo_step > 0 and combo_timer > 0.0 and not dodge_preserved_combo:
+			combo_timer = maxf(combo_timer, dodge_duration + combo_dodge_preserve_time)
+			dodge_preserved_combo = true
+		combat_recovery_timer = 0.0
 		start_dodge(direction)
 	if is_dodging:
 		velocity.x = dodge_direction.x * dodge_speed
@@ -791,7 +1109,7 @@ func start_dodge(direction):
 		consecutive_dodges = 0
 		dodge_chain_reset_timer = 0.0
 	dodge_hit_ids.clear()
-	dodge_direction = (direction if direction != Vector3.ZERO else -transform.basis.z)
+	dodge_direction = (direction if direction != Vector3.ZERO else transform.basis.z)
 	dodge_direction.y = 0.0
 	dodge_direction = dodge_direction.normalized()
 	if anim:
@@ -817,8 +1135,8 @@ func end_dodge():
 	dash_end_aoe()
 	is_dodging = false
 	dodge_invincible = false
-	velocity.x = 0.0
-	velocity.z = 0.0
+	velocity.x *= dodge_exit_momentum
+	velocity.z *= dodge_exit_momentum
 	enemy_knockback_velocity = Vector3.ZERO
 	enemy_knockback_timer = 0.0
 	if dodge_visual:
@@ -1548,23 +1866,42 @@ func end_slam_camera():
 
 # ── TELEPORT TARGETING ──
 
-func try_airborne_teleport():
-	if (teleport_cooldown_timer > 0.0 or slam_camera_active or combat_recovery_timer > 0.0):
+func update_teleport_input() -> void:
+	if teleport_input_buffer_timer <= 0.0:
 		return
+	if try_airborne_teleport():
+		teleport_input_buffer_timer = 0.0
+
+func try_airborne_teleport() -> bool:
+	if (teleport_cooldown_timer > 0.0 or slam_camera_active or combat_recovery_timer > 0.0):
+		return false
 	var target = (get_airborne_teleport_target())
 	if not target:
-		return
-	teleport_to_enemy(target)
+		return false
+	if get_walk_pane_count() > 0:
+		if pane_pull_cooldown_timer > 0.0:
+			# Pane pull remains a deliberate power move. Do not silently turn a
+			# blocked pull click into a normal teleport.
+			return true
+		pull_enemy_into_pane_finisher(target)
+		pane_pull_cooldown_timer = pane_pull_cooldown
+	else:
+		teleport_to_enemy(target)
 	teleport_cooldown_timer = (teleport_cooldown)
 	combat_recovery_timer = teleport_recovery
+	return true
 
 func get_airborne_teleport_target():
-	if is_usable_enemy(locked_enemy, teleport_range, true):
+	# Right-click accepts the enemy Lucian is deliberately looking at whether
+	# it is grounded or airborne. There is no nearest-enemy fallback.
+	if is_usable_enemy(locked_enemy, teleport_range, false):
 		return locked_enemy
-	var target = (get_screen_center_airborne_enemy())
-	return (target if target else get_nearest_enemy(teleport_range, true))
+	return get_screen_center_enemy(false)
 
 func get_screen_center_airborne_enemy():
+	return get_screen_center_enemy(true)
+
+func get_screen_center_enemy(airborne_only: bool = false):
 	if not camera:
 		return null
 	var size = (get_viewport() .get_visible_rect() .size)
@@ -1573,7 +1910,7 @@ func get_screen_center_airborne_enemy():
 	var best = null
 	var best_score = INF
 	for enemy in get_enemies():
-		if not is_usable_enemy(enemy, teleport_range, true):
+		if not is_usable_enemy(enemy, teleport_range, airborne_only):
 			continue
 		var point = (enemy.global_position + Vector3.UP * 1.2)
 		if camera.is_position_behind(point):
@@ -1595,6 +1932,29 @@ func get_screen_center_airborne_enemy():
 			best = enemy
 	return best
 
+func pull_enemy_into_pane_finisher(enemy) -> void:
+	if not valid(enemy):
+		return
+	force_end_glass_block(true)
+	vortex_carry_target = null
+	vortex_carry_timer = 0.0
+	var enemy_was_processing: bool = enemy.is_physics_processing()
+	slam_enemy_was_physics_active = enemy_was_processing
+	enemy.set_physics_process(false)
+	if enemy is CharacterBody3D:
+		enemy.velocity = Vector3.ZERO
+	var destination := global_position + global_transform.basis.z.normalized() * pane_pull_forward_offset + Vector3.UP * pane_pull_height_offset
+	face_enemy(enemy)
+	var pull_tween := create_tween()
+	pull_tween.tween_property(enemy, "global_position", destination, pane_pull_time).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
+	await pull_tween.finished
+	if not valid(enemy):
+		return
+	# Reuse the retired pane tower directly. This branch deliberately does not
+	# call start_slam_camera(), so player camera control is never taken away.
+	slam_chain_empowered = true
+	perform_empowered_slam(enemy)
+
 # ── TELEPORT ──
 
 func teleport_to_enemy(enemy):
@@ -1607,6 +1967,7 @@ func teleport_to_enemy(enemy):
 	teleport_focus_target = enemy
 	teleport_camera_target = enemy
 	slam_target = enemy
+	melee_focus_target = enemy
 	var direction = (global_position - enemy.global_position)
 	direction.y = 0.0
 	if direction.length() < 0.01:
@@ -1614,10 +1975,18 @@ func teleport_to_enemy(enemy):
 	global_position = (get_safe_teleport_position(enemy, direction.normalized()))
 	velocity = Vector3.ZERO
 	low_gravity_timer = (teleport_low_gravity_duration)
-	teleport_followup_timer = (teleport_followup_window)
+	teleport_followup_timer = 0.0
 	teleport_camera_timer = (teleport_camera_duration)
 	face_enemy(enemy)
-	begin_teleport_hold(enemy)
+	# Teleport is a one-hit finisher branch. Holding back/down deliberately
+	# trades the slash for Lucian's old targeted slam.
+	if Input.is_action_pressed("move_back"):
+		call_deferred("start_air_slam")
+		return
+	# Teleport is now one immediate offensive action instead of a frozen
+	# prompt state. The backslash uses the same directional finisher grammar as
+	# the third melee hit.
+	call_deferred("perform_teleport_backslash")
 
 func get_safe_teleport_position(enemy, direction):
 	var checks = max(teleport_position_checks, 1)
@@ -1706,22 +2075,41 @@ func update_teleport_camera(delta):
 	aim_camera_pitch_at(teleport_camera_target.global_position + Vector3.UP * 1.3, teleport_camera_vertical_strength * strength, delta)
 
 func update_followup_input():
-	if (teleport_followup_timer <= 0.0 or not valid(teleport_focus_target)):
-		return false
-	if Input.is_action_just_pressed("jump"):
+	# Glass Arena now belongs to air movement itself: press jump again while
+	# airborne. It no longer depends on a short post-teleport action timer.
+	if not is_on_floor() and Input.is_action_just_pressed("jump") and air_arena_cooldown_timer <= 0.0:
 		create_glass_arena()
+		air_arena_cooldown_timer = air_arena_cooldown
 		return true
 	return false
 
 func update_attack_input():
+	# Holding requests only the next swing. Releasing immediately stops future
+	# requests, while a press made during recovery remains buffered.
+	if attack_held and combo_hold_timer <= 0.0:
+		attack_buffer_timer = maxf(attack_buffer_timer, attack_input_buffer_time)
+		attack_buffer_is_hold = true
+		combo_hold_timer = combo_hold_delay
 	if (slam_windup_timer > 0.0 or slam_recovery_timer > 0.0 or slam_chain_running or combat_recovery_timer > 0.0):
 		return
-	if (teleport_followup_timer > 0.0 and valid(slam_target) and Input.is_action_just_pressed("attack")):
+	# Downward air attack rehomes the existing slam outside the old teleport
+	# timer: hold back/down while attacking in the air.
+	if not is_on_floor() and combo_step == 2 and Input.is_action_pressed("move_back") and attack_buffer_timer > 0.0:
+		slam_target = get_aim_target(finisher_target_range)
+		if valid(slam_target):
+			attack_buffer_timer = 0.0
+			attack_buffer_is_hold = false
+			start_air_slam()
+			return
+	if (teleport_followup_timer > 0.0 and valid(slam_target) and attack_buffer_timer > 0.0):
+		attack_buffer_timer = 0.0
+		attack_buffer_is_hold = false
 		perform_teleport_backslash()
 		return
-	if (Input.is_action_pressed("attack") and combo_hold_timer <= 0.0 and not attacking):
+	if attack_buffer_timer > 0.0 and not attacking:
+		attack_buffer_timer = 0.0
+		attack_buffer_is_hold = false
 		attack()
-		combo_hold_timer = (combo_hold_delay)
 	if Input.is_key_pressed(KEY_H):
 		take_damage(10)
 
@@ -1766,7 +2154,7 @@ func spawn_walk_pane(direction):
 		return
 	var move_direction = direction
 	if move_direction.length() < 0.05:
-		move_direction = (-transform.basis.z)
+		move_direction = transform.basis.z
 	move_direction.y = 0.0
 	move_direction = (move_direction.normalized())
 	var pane_position = (global_position + move_direction * walk_pane_forward_offset + Vector3.DOWN * walk_pane_vertical_offset)
@@ -1805,7 +2193,7 @@ func update_glass_block(delta):
 			break_glass_block()
 
 func begin_glass_block():
-	var panes = get_valid_panes()
+	var panes = get_walk_panes()
 	if panes.is_empty():
 		return
 	glass_block_returning = false
@@ -1972,23 +2360,52 @@ func remove_pane_enemy_exceptions(pane):
 
 # ── F WALL PROJECTILE BLOCKING ──
 
-func set_pane_block_detector(pane, enabled):
+func set_pane_block_detector(pane, _enabled):
 	if not valid(pane):
 		return
 	var detector = pane.get_meta("block_detector", null)
 	if not valid(detector):
 		return
-	detector.monitoring = enabled
+	# Detection remains live outside the old block stance so projectiles,
+	# attack volumes, and tumbling enemies can always break the pane.
+	detector.monitoring = true
 
-func _on_glass_block_detector_area_entered(area):
-	if not glass_block_active:
+func _on_glass_block_detector_area_entered(area, pane = null):
+	var projectile = find_projectile_root(area)
+	if valid(pane) and valid(projectile) and (projectile.is_in_group("enemy_projectiles") or projectile.is_in_group("player_projectiles")):
+		projectile.set_meta("glass_block_resolved", true)
+		projectile.queue_free()
+		shatter_glass_pane(pane, false, pane_attack_break_shards)
 		return
-	block_projectile_node(area)
+	if glass_block_active:
+		block_projectile_node(area)
 
-func _on_glass_block_detector_body_entered(body):
-	if not glass_block_active:
-		return
-	block_projectile_node(body)
+func _on_glass_block_detector_body_entered(body, pane = null):
+	if valid(pane) and valid(body) and body.is_in_group("enemies"):
+		var body_velocity: Vector3 = body.velocity if body is CharacterBody3D else Vector3.ZERO
+		var tumbling: bool = get_property_if_exists(body, "aerial_spin_active") == true
+		var knocked_back: bool = float(get_property_if_exists(body, "knockback_timer")) > 0.0
+		var juggled: bool = float(get_property_if_exists(body, "juggle_gravity_timer")) > 0.0
+		var dying_body: bool = get_property_if_exists(body, "dying") == true
+		if body_velocity.length() >= pane_tumble_break_speed and (tumbling or knocked_back or juggled or dying_body):
+			shatter_glass_pane(pane, false, pane_attack_break_shards)
+			return
+	if glass_block_active:
+		block_projectile_node(body)
+
+func break_panes_in_enemy_attack(attack_center: Vector3, attack_radius: float) -> void:
+	for pane in get_valid_panes():
+		var pane_size: Vector3 = pane.get_meta("pane_size", Vector3.ONE)
+		var local_hit: Vector3 = pane.to_local(attack_center)
+		var horizontal_reach := attack_radius + maxf(pane_size.x, pane_size.z) * 0.5
+		if Vector2(local_hit.x, local_hit.z).length() <= horizontal_reach and absf(local_hit.y) <= attack_radius + pane_size.y * 0.5:
+			shatter_glass_pane(pane, false, pane_attack_break_shards)
+
+func break_panes_along_enemy_attack(from_position: Vector3, to_position: Vector3, attack_radius: float) -> void:
+	# Sampling keeps long claw lanes and lunges reliable against rotated panes
+	# without requiring each enemy move to own a separate physics hitbox.
+	for i in range(9):
+		break_panes_in_enemy_attack(from_position.lerp(to_position, float(i) / 8.0), attack_radius)
 
 func block_projectile_node(node):
 	var projectile = find_projectile_root(node)
@@ -2179,10 +2596,11 @@ func force_end_glass_block(restore_positions = true):
 # ── GLASS ARENA ──
 
 func create_glass_arena():
-	if not valid(teleport_focus_target):
+	var arena_target = teleport_focus_target if valid(teleport_focus_target) else get_aim_target(finisher_target_range)
+	if not valid(arena_target):
 		return
 	force_end_glass_block(true)
-	var enemy = teleport_focus_target
+	var enemy = arena_target
 	clear_teleport_followup()
 	var arena_position = (global_position + enemy.global_position) * 0.5
 	arena_position.y = (min(global_position.y, enemy.global_position.y) - arena_pane_vertical_offset)
@@ -2221,51 +2639,93 @@ func cast_pane_volley():
 		glass_pane_spawn_timer = 0.0
 		spawn_walk_pane(get_movement_direction())
 
-# F — a broad close-range attack instead of a held block.
+# F — form one arena-spanning pane overhead, then drop the sky on the horde.
 func cast_rift_cleave() -> void:
-	if rift_cleave_timer > 0.0 or slam_camera_active or combat_recovery_timer > 0.0:
+	if rift_cleave_timer > 0.0 or slam_camera_active or falling_pane_cast_active or combat_recovery_timer > 0.0:
 		return
 	rift_cleave_timer = rift_cleave_cooldown
-	combat_recovery_timer = 0.22
-	var forward := -global_transform.basis.z.normalized()
-	var impact_center := global_position + forward * 5.0 + Vector3.UP
-	for enemy in get_enemies_near(impact_center, rift_cleave_radius):
-		var to_enemy: Vector3 = enemy.global_position - global_position
-		to_enemy.y = 0.0
-		if to_enemy.length_squared() > 0.01 and forward.dot(to_enemy.normalized()) < -0.15:
-			continue
-		var direction := to_enemy.normalized() if to_enemy.length_squared() > 0.01 else forward
-		hit_enemy(enemy, rift_cleave_damage, rift_cleave_knockback, 6.0, 0.35, direction)
-	if not ult_wave_materials.is_empty():
-		spawn_flash_sphere(impact_center, rift_cleave_radius, ult_wave_materials[2], 0.2)
+	combat_recovery_timer = falling_pane_form_time
+	falling_pane_cast_active = true
+	falling_pane_saved_camera_pitch = camera_pitch_target
+	velocity = Vector3.ZERO
+	force_end_glass_block(true)
+	var forward := global_transform.basis.z.normalized()
+	var pane_center := global_position + forward * falling_pane_forward_offset
+	var start := pane_center + Vector3.UP * falling_pane_spawn_height
+	var destination := pane_center + Vector3.UP * 0.45
+	# This cinematic pane is not a movement pane, so it cannot accidentally
+	# switch right click into pane pull while it hangs overhead.
+	var pane = create_glass_pane(start, falling_pane_size, falling_pane_form_time + falling_pane_crash_time + 1.2, small_glass_material, small_pane_ult_charge, false)
+	if not valid(pane):
+		falling_pane_cast_active = false
+		camera_pitch_target = falling_pane_saved_camera_pitch
+		return
+	pane.rotation = Vector3(deg_to_rad(-3.0), rotation.y, deg_to_rad(-2.0))
+	pane.scale = Vector3(0.015, 0.12, 0.015)
+	spawn_light_flash(start, 12.0, falling_pane_explosion_light_energy, Color(0.72, 0.9, 1.0), falling_pane_form_time * 0.65)
+	spawn_shard_burst(start, 72, 28.0, 0.65, falling_pane_form_time)
+	var form_tween := create_tween()
+	form_tween.tween_property(pane, "scale", Vector3.ONE, falling_pane_form_time).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
+	await form_tween.finished
+	# Control returns on the exact beat the completed pane starts falling.
+	falling_pane_cast_active = false
+	camera_pitch_target = falling_pane_saved_camera_pitch
+	if not valid(pane):
+		return
+	var fall_tween := create_tween()
+	fall_tween.tween_property(pane, "global_position", destination, falling_pane_crash_time).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN)
+	fall_tween.tween_callback(impact_falling_pane.bind(pane, destination, forward))
 	camera_fov_pulse()
 
-# E — a self-contained homing burst; no panes or stored count required.
-func cast_ruin_volley() -> void:
-	if ruin_volley_timer > 0.0 or slam_camera_active or combat_recovery_timer > 0.0 or not homing_projectile_scene:
+func update_falling_pane_camera(_delta: float) -> void:
+	if not falling_pane_cast_active:
 		return
-	if get_enemies().is_empty():
+	camera_pitch_target = deg_to_rad(falling_pane_camera_pitch_degrees)
+	if camera:
+		camera.fov = lerpf(camera.fov, 58.0, 0.12)
+
+# E — Cathedral Pulse lifts and suspends the surrounding horde for F panes.
+func cast_ruin_volley() -> void:
+	if ruin_volley_timer > 0.0 or slam_camera_active or combat_recovery_timer > 0.0:
 		return
 	ruin_volley_timer = ruin_volley_cooldown
-	combat_recovery_timer = ability_recovery
-	for i in range(ruin_volley_projectiles):
-		var angle := TAU * float(i) / float(maxi(ruin_volley_projectiles, 1))
-		var origin := global_position + Vector3(cos(angle) * 1.8, 2.0 + (i % 2) * 0.45, sin(angle) * 1.8)
-		var target = get_nearest_enemy_to(origin, pane_volley_target_range)
-		if not valid(target):
-			continue
-		var projectile = homing_projectile_scene.instantiate()
-		get_tree().current_scene.add_child(projectile)
-		projectile.global_position = origin
-		projectile.target = target
-		projectile.damage = ruin_volley_damage
-		projectile.projectile_size = 0.62
-		projectile.is_finisher_projectile = false
-		projectile.direction = (target.global_position + Vector3.UP - origin).normalized()
-		set_if_has(projectile, "speed", 120.0)
-		set_if_has(projectile, "homing_strength", 16.0)
-		set_if_has(projectile, "launch_force", 2.5)
-		set_if_has(projectile, "stun_time", 0.18)
+	combat_recovery_timer = 0.20
+	var well_center := global_position + Vector3.UP
+	break_panes_in_enemy_attack(well_center, fracture_well_radius)
+	for enemy in get_enemies_near(well_center, fracture_well_radius):
+		var pulse_direction: Vector3 = enemy.global_position - well_center
+		pulse_direction.y = 0.0
+		if pulse_direction.length_squared() < 0.01:
+			pulse_direction = global_transform.basis.z
+		if enemy.has_method("take_damage"):
+			enemy.take_damage(fracture_well_damage)
+		if enemy.has_method("apply_hit_effect"):
+			enemy.apply_hit_effect(pulse_direction.normalized(), fracture_well_pull, suspension_pulse_launch, suspension_pulse_stun, true)
+		elif enemy is CharacterBody3D:
+			enemy.velocity = pulse_direction.normalized() * fracture_well_pull + Vector3.UP * suspension_pulse_launch
+		set_if_has(enemy, "juggle_gravity_timer", suspension_pulse_hold_time)
+	if not ult_wave_materials.is_empty():
+		spawn_flash_sphere(well_center + Vector3.UP, fracture_well_radius, ult_wave_materials[1], 0.26)
+		spawn_flash_sphere(well_center + Vector3.UP * 4.0, fracture_well_radius * 0.72, ult_wave_materials[2], 0.34)
+		spawn_shard_burst(well_center + Vector3.UP, 72, fracture_well_radius, 0.9, 0.42)
+	camera_fov_pulse()
+
+func impact_falling_pane(pane, impact_position: Vector3, outward: Vector3) -> void:
+	if not valid(pane):
+		return
+	for enemy in get_enemies_near(impact_position, falling_pane_impact_radius):
+		var direction: Vector3 = enemy.global_position - impact_position
+		direction.y = 0.0
+		if direction.length_squared() < 0.01:
+			direction = outward
+		hit_enemy(enemy, falling_pane_explosion_damage, falling_pane_knockback, falling_pane_launch, 0.42, direction.normalized())
+	# Layered glass blast makes the damaging radius readable at horde speed.
+	if not ult_wave_materials.is_empty():
+		spawn_flash_sphere(impact_position + Vector3.UP * 0.8, falling_pane_impact_radius, ult_wave_materials[2], 0.18)
+		spawn_flash_sphere(impact_position + Vector3.UP * 0.35, falling_pane_impact_radius * 0.68, ult_wave_materials[0], 0.12)
+	spawn_light_flash(impact_position + Vector3.UP * 1.2, falling_pane_impact_radius * 1.35, falling_pane_explosion_light_energy, Color(0.72, 0.9, 1.0), 0.16)
+	spawn_shard_burst(impact_position, 48, falling_pane_impact_radius * 1.15, 1.0, 0.36)
+	shatter_glass_pane(pane, false, 20)
 
 func spawn_pane_projectile(origin, target):
 	var projectile = (homing_projectile_scene.instantiate())
@@ -2340,15 +2800,15 @@ func create_glass_pane(pane_position, size, lifetime, material, charge, is_walk_
 	block_detector.collision_layer = 0
 	# Detect projectile Areas/Bodies on every layer.
 	block_detector.collision_mask = (0xFFFFFFFF)
-	block_detector.monitoring = false
+	block_detector.monitoring = true
 	block_detector.monitorable = false
 	var detector_collision = (CollisionShape3D.new())
 	var detector_shape = (BoxShape3D.new())
 	detector_shape.size = size
 	detector_collision.shape = (detector_shape)
 	block_detector.add_child(detector_collision)
-	block_detector.area_entered.connect(_on_glass_block_detector_area_entered)
-	block_detector.body_entered.connect(_on_glass_block_detector_body_entered)
+	block_detector.area_entered.connect(_on_glass_block_detector_area_entered.bind(pane))
+	block_detector.body_entered.connect(_on_glass_block_detector_body_entered.bind(pane))
 	pane.set_meta("block_detector", block_detector)
 	# ── ADD PANE ──
 	get_tree().current_scene.add_child(pane)
@@ -2361,6 +2821,7 @@ func create_glass_pane(pane_position, size, lifetime, material, charge, is_walk_
 	sync_pane_enemy_exceptions(pane)
 	update_pane_counter_ui()
 	expire_glass_pane(pane, lifetime)
+	return pane
 
 # ── GLASS HELPERS ──
 
@@ -2733,12 +3194,9 @@ func perform_empowered_slam(enemy):
 	if not valid(enemy):
 		return
 
-	var panes = get_valid_panes()
+	var panes = get_walk_panes()
 
-	if (
-		get_walk_pane_count() < empowered_required_walk_panes
-		or panes.is_empty()
-	):
+	if panes.is_empty():
 		slam_chain_empowered = false
 		execute_normal_slam(enemy)
 		return
@@ -4020,8 +4478,21 @@ func toggle_lock():
 			lock_targets.append(enemy)
 	if lock_targets.is_empty():
 		return
-	lock_index = 0
-	locked_enemy = lock_targets[0]
+	var selected_index := 0
+	var best_score := INF
+	if camera:
+		var screen_center := get_viewport().get_visible_rect().size * 0.5
+		for i in range(lock_targets.size()):
+			var target = lock_targets[i]
+			var target_point: Vector3 = target.global_position + Vector3.UP * 1.2
+			if camera.is_position_behind(target_point):
+				continue
+			var score: float = camera.unproject_position(target_point).distance_squared_to(screen_center)
+			if score < best_score:
+				best_score = score
+				selected_index = i
+	lock_index = selected_index
+	locked_enemy = lock_targets[lock_index]
 	if lock_reticle:
 		lock_reticle.show()
 
@@ -4066,19 +4537,26 @@ func update_lock_reticle():
 func attack():
 	combo_step = (1 if combo_step >= 3 else combo_step + 1)
 	attacking = true
+	dodge_preserved_combo = false
 	combo_timer = combo_reset_time
 	combo_melee_hit_ids.clear()
 	var now := Time.get_ticks_msec()
 	var perfectly_timed := last_combo_click_msec > 0 and float(now - last_combo_click_msec) <= perfect_click_window * 1000.0
 	last_combo_click_msec = now
-	if is_dodging or dodge_chain_reset_timer > 0.0:
+	# Hits one and two are always the readable core sword strings. Movement,
+	# dodge, and air variants are reserved for the committed third hit.
+	if combo_step == 3 and (is_dodging or dodge_chain_reset_timer > 0.0):
 		await perform_dodge_cross_slash()
-	elif not is_on_floor():
+	elif combo_step == 3 and not is_on_floor():
 		await perform_air_blade_strike(combo_step)
-	elif Vector2(velocity.x, velocity.z).length() >= running_attack_speed_threshold:
+	elif combo_step == 3 and Vector2(velocity.x, velocity.z).length() >= running_attack_speed_threshold:
 		await perform_running_glass_slash()
 	else:
 		await perform_melee_combo_step(combo_step, perfectly_timed)
+	# A detected second click converts the opening cut into the committed
+	# cyclone and owns the rest of this attack sequence.
+	if sword_cyclone_active:
+		return
 	match combo_step:
 		1:
 			shoot_projectile(1)
@@ -4091,63 +4569,126 @@ func attack():
 		recovery = combo_hit_two_recovery
 	elif combo_step == 3:
 		recovery = combo_finisher_recovery
+		attack_cancel_lock_timer = finisher_dodge_commitment
 	combat_recovery_timer = recovery
 	await get_tree().create_timer(recovery).timeout
 	attacking = false
 
 func perform_melee_combo_step(step: int, perfectly_timed: bool = false) -> void:
-	var target = get_aim_target(melee_reach + 5.0)
-	var forward := -global_transform.basis.z.normalized()
+	# Acquire from Lucian's reticle, then retain that combat focus through this
+	# combo. This guides only his body movement; it never takes over the camera.
+	if not valid(melee_focus_target) or global_position.distance_to(melee_focus_target.global_position) > melee_focus_range:
+		melee_focus_target = get_aim_target(melee_focus_range)
+	var target = melee_focus_target
+	var forward := global_transform.basis.z.normalized()
 	if valid(target):
 		var correction: Vector3 = target.global_position - global_position
 		correction.y = 0.0
 		if correction.length_squared() > 0.01:
 			var desired_yaw := atan2(correction.normalized().x, correction.normalized().z)
-			rotation.y = lerp_angle(rotation.y, desired_yaw, 0.58)
-			forward = -global_transform.basis.z.normalized()
+			rotation.y = lerp_angle(rotation.y, desired_yaw, 0.92)
+			forward = global_transform.basis.z.normalized()
 	var step_distance: float = [melee_step_distances.x, melee_step_distances.y, melee_step_distances.z][step - 1]
-	# Add a compact sword-step without teleporting Lucian out of position.
-	velocity.x += forward.x * step_distance * 10.0
-	velocity.z += forward.z * step_distance * 10.0
 	var side_sign: float = -1.0 if step == 1 else 1.0
-	var center: Vector3 = global_position + forward * (melee_reach * 0.58) + global_transform.basis.x * side_sign * (1.2 if step < 3 else 0.0)
-	var radius: float = melee_reach * (0.72 if step == 1 else (1.0 if step == 2 else 1.28))
-	spawn_stained_glass_blade(step, forward, perfectly_timed)
-	if step == 3:
-		# Final Word is a rising launcher; Lucian follows the victim upward.
-		velocity.y = maxf(velocity.y, 6.5)
+	var center: Vector3 = global_position + forward * (melee_reach * 0.52 + step_distance) + global_transform.basis.x * side_sign * (1.6 if step < 3 else 0.0)
+	var radius: float = melee_reach * (0.92 if step == 1 else (1.16 if step == 2 else 1.52))
+	var branch_input := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+	var finisher_side: int = 0
+	if step == 3 and absf(branch_input.x) >= directional_branch_threshold:
+		finisher_side = -1 if branch_input.x < 0.0 else 1
+	var lateral_sweep := finisher_side != 0
+	var driving_finisher := step == 3 and branch_input.y <= -directional_branch_threshold
+	start_sword_motion(step, forward, finisher_side, target)
+	if lateral_sweep:
+		# Left gathers a mob into an aerial vortex; right commits to a violent
+		# arena-clearing shatter cleave.
+		center = global_position + Vector3.UP
+		radius *= left_finisher_gather_radius_multiplier if finisher_side < 0 else right_finisher_cleave_radius_multiplier
+	spawn_stained_glass_blade(step, forward, perfectly_timed, finisher_side)
+	if finisher_side < 0:
+		# A second counter-rotating blade makes the left finisher read as a
+		# glass vortex instead of a mirrored ordinary slash.
+		spawn_stained_glass_blade(2, -forward, perfectly_timed, finisher_side)
+	# Damage lands when the visible blade reaches the target, not on button
+	# press. The finisher gets the clearest anticipation beat.
+	var contact_delay: float = [melee_contact_delays.x, melee_contact_delays.y, melee_contact_delays.z][step - 1]
+	await get_tree().create_timer(contact_delay).timeout
+	# The sword's actual contact volume cuts glass as well as enemies.
+	break_panes_in_enemy_attack(center, radius)
 	var hit_any := false
+	var primary_impact_position := Vector3.ZERO
 	for enemy in get_enemies_near(center, radius):
 		var to_enemy: Vector3 = enemy.global_position - global_position
 		to_enemy.y = 0.0
-		if to_enemy.length_squared() > 0.01 and forward.dot(to_enemy.normalized()) < (-0.1 if step == 2 else 0.05):
+		if not lateral_sweep and to_enemy.length_squared() > 0.01 and forward.dot(to_enemy.normalized()) < (-0.28 if step < 3 else -0.12):
 			continue
 		combo_melee_hit_ids[enemy.get_instance_id()] = true
+		if not hit_any:
+			primary_impact_position = enemy.global_position + Vector3.UP
 		hit_any = true
 		var damage: float = [melee_damage_tiers.x, melee_damage_tiers.y, melee_damage_tiers.z][step - 1]
 		var stagger: float = [melee_stagger_tiers.x, melee_stagger_tiers.y, melee_stagger_tiers.z][step - 1]
 		var knockback: float = [melee_knockback_tiers.x, melee_knockback_tiers.y, melee_knockback_tiers.z][step - 1]
 		var launch: float = [melee_launch_tiers.x, melee_launch_tiers.y, melee_launch_tiers.z][step - 1]
-		hit_enemy(enemy, damage, knockback, launch, stagger, to_enemy.normalized() if to_enemy.length_squared() > 0.01 else forward)
-		if step == 3 and not valid(vortex_carry_target):
+		# Side lanes become crowd launchers. The focused center of Swing 1 pops
+		# straight up; Swing 2 keeps its center target close.
+		var lateral_distance := absf(global_transform.basis.x.normalized().dot(to_enemy))
+		var in_center_lane := step < 3 and forward.dot(to_enemy) > 0.0 and lateral_distance <= combo_center_lane_half_width
+		if step == 1 and in_center_lane:
+			# Opening Verse pops the focused target vertically for a deliberate
+			# air route without throwing it away from Lucian.
+			knockback = 0.0
+			launch = swing_one_center_launch
+		elif in_center_lane:
+			knockback = combo_center_knockback
+			launch = combo_center_launch
+		elif step == 1:
+			launch = combo_side_launch.x
+		elif step == 2:
+			launch = combo_side_launch.y
+		if driving_finisher:
+			knockback *= driving_finisher_knockback_multiplier
+			launch = driving_finisher_launch
+		var hit_direction: Vector3 = to_enemy.normalized() if to_enemy.length_squared() > 0.01 else forward
+		if finisher_side < 0:
+			# Pull the ring inward and pop it up for an aerial continuation.
+			hit_direction = -hit_direction
+			knockback = left_finisher_inward_force
+			launch = left_finisher_launch
+		elif finisher_side > 0:
+			# Every victim is carved across the same side of the arena, producing
+			# a readable wall of frantic airborne ragdolls.
+			hit_direction = global_transform.basis.x.normalized()
+			knockback = right_finisher_sweep_force
+			launch = right_finisher_launch
+		hit_enemy(enemy, damage, knockback, launch, stagger, hit_direction)
+		if step == 3 and finisher_auto_air_carry and not driving_finisher and not valid(vortex_carry_target):
 			start_vortex_air_carry(enemy)
 		if enemy.has_method("apply_break_damage"):
 			var break_damage: float = [melee_break_tiers.x, melee_break_tiers.y, melee_break_tiers.z][step - 1]
 			enemy.apply_break_damage(break_damage * (1.35 if perfectly_timed else 1.0))
 		spawn_shard_burst(enemy.global_position + Vector3.UP, blade_shard_count + step * 8, 6.0 + step * 2.0, 0.55 + step * 0.18, 0.22)
 	if hit_any:
+		# Briefly arrest Lucian's attack lunge to suggest resistance without
+		# physically colliding or stealing movement control for long.
+		velocity.x *= melee_contact_brake
+		velocity.z *= melee_contact_brake
+		sword_motion_velocity *= melee_contact_brake
 		rift_cleave_timer = maxf(0.0, rift_cleave_timer - melee_cooldown_refund)
 		ruin_volley_timer = maxf(0.0, ruin_volley_timer - melee_cooldown_refund)
 		camera.fov += 1.5 + step * 1.2 if camera else 0.0
+		var impact_energy: float = [melee_impact_light_energy.x, melee_impact_light_energy.y, melee_impact_light_energy.z][step - 1]
+		var impact_radius: float = [melee_impact_flash_radius.x, melee_impact_flash_radius.y, melee_impact_flash_radius.z][step - 1]
+		spawn_light_flash(primary_impact_position, impact_radius, impact_energy, Color(0.82, 0.92, 1.0), 0.075 if step < 3 else 0.12)
 
 func perform_running_glass_slash() -> void:
-	var forward: Vector3 = -global_transform.basis.z.normalized()
+	var forward: Vector3 = global_transform.basis.z.normalized()
 	velocity.x = forward.x * 42.0
 	velocity.z = forward.z * 42.0
 	await perform_melee_combo_step(1, false)
 
 func perform_dodge_cross_slash() -> void:
-	var forward: Vector3 = dodge_direction if dodge_direction.length_squared() > 0.01 else -global_transform.basis.z
+	var forward: Vector3 = dodge_direction if dodge_direction.length_squared() > 0.01 else global_transform.basis.z
 	velocity.x = forward.normalized().x * 48.0
 	velocity.z = forward.normalized().z * 48.0
 	await perform_melee_combo_step(2, true)
@@ -4162,7 +4703,7 @@ func perform_teleport_backslash() -> void:
 	if not valid(slam_target):
 		return
 	attacking = true
-	combo_step = 2
+	combo_step = 3
 	combo_timer = maxf(combo_timer, 1.4)
 	var target = slam_target
 	clear_teleport_followup()
@@ -4170,13 +4711,15 @@ func perform_teleport_backslash() -> void:
 	away.y = 0.0
 	if away.length_squared() > 0.01:
 		rotation.y = atan2(away.normalized().x, away.normalized().z)
-	locked_enemy = target
-	await perform_melee_combo_step(2, true)
-	if target.has_method("apply_break_damage"):
+	await perform_melee_combo_step(3, true)
+	# The combo step yields for its windup/impact timing. The selected enemy can
+	# die during that window, so never dereference the cached target afterward
+	# without checking that the Object still exists.
+	if is_instance_valid(target) and target.has_method("apply_break_damage"):
 		target.apply_break_damage(teleport_backslash_break)
-	shoot_projectile(2)
-	combat_recovery_timer = combo_hit_two_recovery
-	await get_tree().create_timer(combo_hit_two_recovery).timeout
+	perform_vortex_finisher()
+	combat_recovery_timer = combo_finisher_recovery
+	await get_tree().create_timer(combo_finisher_recovery).timeout
 	attacking = false
 
 func start_vortex_air_carry(enemy: Node3D) -> void:
@@ -4184,7 +4727,6 @@ func start_vortex_air_carry(enemy: Node3D) -> void:
 		return
 	vortex_carry_target = enemy
 	vortex_carry_timer = vortex_carry_duration
-	locked_enemy = enemy
 	velocity.y = maxf(velocity.y, vortex_carry_vertical_speed)
 	low_gravity_timer = maxf(low_gravity_timer, vortex_carry_duration + 0.25)
 	combo_timer = maxf(combo_timer, vortex_carry_duration + 0.65)
@@ -4212,14 +4754,24 @@ func update_vortex_air_carry(delta: float) -> void:
 		velocity.y = maxf(velocity.y, aerial_suspension_speed)
 	aim_camera_pitch_at(vortex_carry_target.global_position + Vector3.UP, 0.72, delta)
 
-func spawn_stained_glass_blade(step: int, forward: Vector3, empowered: bool) -> void:
+func spawn_stained_glass_blade(step: int, forward: Vector3, empowered: bool, finisher_side: int = 0) -> void:
 	var pivot := Node3D.new()
 	add_child(pivot)
-	pivot.position = Vector3(0.72, 1.5, -0.45)
+	# Start at the animated hand instead of a guessed body-space point. Clamp
+	# it to Lucian's front plane so a backswing pose cannot originate behind him.
+	var hand_origin := blade_hand_offset
+	if character_skeleton:
+		var hand_bone := character_skeleton.find_bone("arm_right_hand")
+		if hand_bone >= 0:
+			var hand_world: Vector3 = character_skeleton.to_global(character_skeleton.get_bone_global_pose(hand_bone).origin)
+			hand_origin = to_local(hand_world)
+			hand_origin = hand_origin.lerp(blade_hand_offset, blade_hand_anchor_stability)
+	hand_origin.z = maxf(hand_origin.z, 0.55)
+	pivot.position = hand_origin
 	var blade := MeshInstance3D.new()
-	var mesh := BoxMesh.new()
-	var blade_length := 5.8 + step * 2.2
-	mesh.size = Vector3(0.34 + step * 0.18, 0.22 + step * 0.12, blade_length)
+	var mesh := PrismMesh.new()
+	var blade_length := 8.5 + step * 3.0
+	mesh.size = Vector3(0.72 + step * 0.28, 0.42 + step * 0.18, blade_length)
 	blade.mesh = mesh
 	var material := StandardMaterial3D.new()
 	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -4232,26 +4784,59 @@ func spawn_stained_glass_blade(step: int, forward: Vector3, empowered: bool) -> 
 	material.emission_energy_multiplier = blade_flash_energy
 	blade.material_override = material
 	pivot.add_child(blade)
-	blade.position = Vector3(0.0, 0.0, -blade_length * 0.5)
+	blade.position = Vector3(0.0, 0.0, blade_length * 0.5)
+	# A bright narrow core gives the construct a readable cutting edge rather
+	# than the silhouette of a large translucent block.
+	var core := MeshInstance3D.new()
+	var core_mesh := PrismMesh.new()
+	core_mesh.size = Vector3(0.16 + step * 0.07, 0.12 + step * 0.05, blade_length * 0.94)
+	core.mesh = core_mesh
+	var core_material := material.duplicate() as StandardMaterial3D
+	core_material.albedo_color = Color(0.92, 0.98, 1.0, 0.9)
+	core_material.emission = core_material.albedo_color
+	core_material.emission_energy_multiplier = blade_flash_energy * 1.25
+	core.material_override = core_material
+	core.position = Vector3(0.0, 0.0, blade_length * 0.5)
+	pivot.add_child(core)
 	var start_rotation := Vector3.ZERO
 	var end_rotation := Vector3.ZERO
 	if step == 1:
-		start_rotation = Vector3(deg_to_rad(-8.0), deg_to_rad(-105.0), deg_to_rad(-18.0))
-		end_rotation = Vector3(deg_to_rad(5.0), deg_to_rad(72.0), deg_to_rad(14.0))
+		start_rotation = Vector3(deg_to_rad(-8.0), deg_to_rad(-blade_horizontal_arc_degrees), deg_to_rad(-18.0))
+		end_rotation = Vector3(deg_to_rad(5.0), deg_to_rad(blade_horizontal_arc_degrees), deg_to_rad(14.0))
 	elif step == 2:
-		start_rotation = Vector3(deg_to_rad(5.0), deg_to_rad(92.0), deg_to_rad(20.0))
-		end_rotation = Vector3(deg_to_rad(-8.0), deg_to_rad(-108.0), deg_to_rad(-16.0))
+		start_rotation = Vector3(deg_to_rad(5.0), deg_to_rad(blade_horizontal_arc_degrees), deg_to_rad(20.0))
+		end_rotation = Vector3(deg_to_rad(-8.0), deg_to_rad(-blade_horizontal_arc_degrees), deg_to_rad(-16.0))
+	elif finisher_side < 0:
+		# Rising corkscrew cut for the gathering vortex.
+		pivot.position = Vector3(hand_origin.x, minf(hand_origin.y, 0.72), maxf(hand_origin.z, 0.9))
+		start_rotation = Vector3(deg_to_rad(24.0), deg_to_rad(-132.0), deg_to_rad(-58.0))
+		end_rotation = Vector3(deg_to_rad(-62.0), deg_to_rad(138.0), deg_to_rad(42.0))
+	elif finisher_side > 0:
+		# Huge shoulder-to-floor diagonal cleave with a longer silhouette.
+		pivot.position = Vector3(hand_origin.x, hand_origin.y + 0.8, maxf(hand_origin.z, 0.9))
+		start_rotation = Vector3(deg_to_rad(-34.0), deg_to_rad(102.0), deg_to_rad(72.0))
+		end_rotation = Vector3(deg_to_rad(48.0), deg_to_rad(-118.0), deg_to_rad(-46.0))
 	else:
 		# Huge low-to-high sword arc, ending where the vortex orbs erupt.
-		pivot.position = Vector3(0.55, 0.75, -0.35)
-		start_rotation = Vector3(deg_to_rad(-72.0), deg_to_rad(-12.0), deg_to_rad(-20.0))
-		end_rotation = Vector3(deg_to_rad(78.0), deg_to_rad(12.0), deg_to_rad(12.0))
+		pivot.position = Vector3(hand_origin.x, minf(hand_origin.y, 0.82), maxf(hand_origin.z, 0.9))
+		# Keep this as a clean forward vertical cut in Lucian's +Z convention.
+		start_rotation = Vector3(deg_to_rad(78.0), 0.0, deg_to_rad(-8.0))
+		end_rotation = Vector3(deg_to_rad(-82.0), 0.0, deg_to_rad(6.0))
 	pivot.rotation = start_rotation
 	var tween := create_tween()
-	blade.scale = Vector3(0.12, 0.12, 0.12)
-	tween.tween_property(blade, "scale", Vector3.ONE * (1.45 if step == 3 else 1.0), 0.035)
-	tween.tween_property(pivot, "rotation", end_rotation, 0.13 if step < 3 else 0.18).set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
-	tween.parallel().tween_property(blade, "transparency", 1.0, 0.13)
+	var full_scale := Vector3.ONE * (1.45 if step == 3 else 1.0)
+	if finisher_side > 0:
+		full_scale.z *= 1.28
+	blade.scale = Vector3(0.18, 0.18, 0.05)
+	core.scale = Vector3(0.1, 0.1, 0.04)
+	tween.tween_property(blade, "scale", full_scale, blade_assembly_time).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(core, "scale", full_scale, blade_assembly_time).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(pivot, "rotation", end_rotation, blade_cut_time if step < 3 else blade_cut_time * 1.35).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN)
+	tween.tween_interval(blade_follow_through_time)
+	tween.tween_property(blade, "scale", Vector3(1.18, 0.16, 0.72), 0.055).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tween.parallel().tween_property(core, "scale", Vector3(1.4, 0.05, 0.45), 0.055)
+	tween.parallel().tween_property(blade, "transparency", 1.0, 0.055)
+	tween.parallel().tween_property(core, "transparency", 1.0, 0.055)
 	tween.tween_callback(pivot.queue_free)
 
 func spawn_final_word_floor_cracks(center: Vector3) -> void:
@@ -4329,35 +4914,15 @@ func get_normal_projectile_target():
 	return get_aim_target(aim_assist_range)
 
 func get_aim_target(max_range):
-	# Manual lock always wins.
+	# No soft/automatic lock. Attacks stay freely directional until the
+	# player explicitly acquires a target with the lock button.
 	if is_usable_enemy(locked_enemy, max_range):
 		return locked_enemy
-
-	if not camera:
-		return null
-
-	var viewport_size = get_viewport().get_visible_rect().size
-	var center = viewport_size * 0.5
-	var best = null
-	var best_screen_distance = aim_assist_screen_radius
-
-	for enemy in get_enemies():
-		if not is_usable_enemy(enemy, max_range):
-			continue
-		var point = enemy.global_position + Vector3.UP * 1.2
-		if camera.is_position_behind(point):
-			continue
-		var screen_point = camera.unproject_position(point)
-		var screen_distance = screen_point.distance_to(center)
-		if screen_distance <= best_screen_distance:
-			best_screen_distance = screen_distance
-			best = enemy
-
-	return best
+	return null
 
 func get_reticle_aim_point():
 	if not camera:
-		return global_position + (-global_transform.basis.z * aim_distance)
+		return global_position + (global_transform.basis.z * aim_distance)
 
 	# Shoot a ray directly through the exact center of the screen.
 	var viewport_size = get_viewport().get_visible_rect().size
@@ -4380,7 +4945,7 @@ func get_reticle_aim_point():
 
 func spawn_projectile(projectile):
 	get_tree().current_scene.add_child(projectile)
-	var forward = (-global_transform.basis.z).normalized()
+	var forward = global_transform.basis.z.normalized()
 	var right = global_transform.basis.x.normalized()
 	projectile.global_position = (
 		global_position
@@ -4599,7 +5164,7 @@ func setup_reliquary_ui():
 		diamond.pivot_offset = Vector2(15, 15)
 		diamond.add_theme_stylebox_override("panel", make_reliquary_style(Color(0.12, 0.14, 0.19), Color(0.82, 0.65, 0.25), 2, 2))
 		var glyph := Label.new()
-		glyph.text = ["R", "F", "E", "Q"][i]
+		glyph.text = ["RMB", "F", "E", "Q"][i]
 		glyph.rotation = -PI * 0.25
 		glyph.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		glyph.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -4673,7 +5238,7 @@ func setup_reliquary_ui_legacy():
 	ability_row.alignment = BoxContainer.ALIGNMENT_END
 	ability_row.add_theme_constant_override("separation", 7)
 	info.add_child(ability_row)
-	for ability_name in ["ROLL", "PANE", "SLAM", "ULT"]:
+	for ability_name in ["RMB", "PANE", "SLAM", "ULT"]:
 		var holder := Control.new()
 		holder.custom_minimum_size = Vector2(39, 39)
 		ability_row.add_child(holder)
@@ -4738,10 +5303,17 @@ func update_reliquary_ui():
 		reliquary_portrait.scale = Vector2.ONE * (1.0 + sin(Time.get_ticks_msec() * 0.008) * 0.035 if critical else 1.0)
 	if reliquary_critical_notch:
 		reliquary_critical_notch.add_theme_color_override("font_color", Color(1.0, 0.2, 0.24) if critical else Color(0.52, 0.54, 0.6))
-	var ready_states := [not is_dodging, rift_cleave_timer <= 0.0, ruin_volley_timer <= 0.0, ult_ready]
+	# Right click changes from teleport to pane pull whenever movement panes are
+	# active, so its HUD slot follows the cooldown of the action it will cast.
+	var right_click_ready: bool = (
+		pane_pull_cooldown_timer <= 0.0
+		if get_walk_pane_count() > 0
+		else teleport_cooldown_timer <= 0.0
+	)
+	var ready_states := [right_click_ready, rift_cleave_timer <= 0.0, ruin_volley_timer <= 0.0, ult_ready]
 	for i in range(reliquary_ability_diamonds.size()):
 		var diamond := reliquary_ability_diamonds[i]
-		var ability_ready: bool = bool(ready_states[i])
+		var ability_ready: bool = ready_states[i] == true
 		var fill: Color = Color(0.13, 0.24, 0.34, 0.98) if ability_ready else Color(0.035, 0.035, 0.05, 0.95)
 		var edge: Color = Color(0.55, 0.84, 1.0) if ability_ready else Color(0.22, 0.23, 0.28)
 		if open_arsenal_active and not ability_ready:
@@ -5009,3 +5581,29 @@ func apply_run_item(item_id: String):
 			dodge_end_knockback *= 1.30
 
 			print("Violent Reflection acquired!")
+
+		"stormglass_cadence":
+			combo_hold_delay *= 0.80
+			combo_hit_one_recovery *= 0.80
+			combo_hit_two_recovery *= 0.80
+			combo_finisher_recovery *= 0.80
+			blade_cut_time *= 0.80
+
+		"living_circuit":
+			teleport_cooldown *= 0.70
+			pane_pull_cooldown *= 0.70
+			rift_cleave_cooldown *= 0.70
+			ruin_volley_cooldown *= 0.70
+
+		"thunder_verse":
+			combo_hold_delay *= 0.85
+			combo_hit_one_recovery *= 0.85
+			combo_hit_two_recovery *= 0.85
+			combo_finisher_recovery *= 0.85
+			teleport_cooldown *= 0.85
+			pane_pull_cooldown *= 0.85
+			rift_cleave_cooldown *= 0.85
+			ruin_volley_cooldown *= 0.85
+
+func on_enemy_killed() -> void:
+	teleport_cooldown_timer = maxf(0.0, teleport_cooldown_timer - teleport_kill_refund)

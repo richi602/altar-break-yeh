@@ -44,6 +44,7 @@ var has_hit = false
 # =========================
 
 func _ready():
+	add_to_group("player_projectiles")
 
 	scale = (
 		Vector3.ONE
